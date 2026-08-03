@@ -1,7 +1,7 @@
 const I18N = {
     no: {
-        pageTitle: 'Konverter',
-        logo: 'Konverter',
+        pageTitle: 'Nomad OS',
+        logo: 'Nomad OS',
         tagline: '166 valutaer · hele verden · live kurser · PPP',
         travelStyleLabel: 'Reisestil',
         travelStyleBackpacker: '🎒 Backpacker',
@@ -334,8 +334,8 @@ const I18N = {
         insightWorse: (pct, to, from, amt, real) => `Kjøpekraften faller ~${pct}% i ${to} sammenlignet med ${from}. Høyere levekostnader og premium prising spiser opp fordelen fra valutakursen — ${amt} føles mer som ${real} i lokal kjøpekraft.`
     },
     en: {
-        pageTitle: 'Converter',
-        logo: 'Converter',
+        pageTitle: 'Nomad OS',
+        logo: 'Nomad OS',
         tagline: '166 currencies · worldwide · live rates · PPP',
         travelStyleLabel: 'Travel style',
         travelStyleBackpacker: '🎒 Backpacker',
@@ -668,8 +668,8 @@ const I18N = {
         insightWorse: (pct, to, from, amt, real) => `Purchasing power drops ~${pct}% in ${to} compared to ${from}. Higher living costs eat into the exchange rate advantage — ${amt} feels more like ${real} in local terms.`
     },
     de: {
-        pageTitle: 'Währungsrechner',
-        logo: 'Konverter',
+        pageTitle: 'Nomad OS',
+        logo: 'Nomad OS',
         tagline: '166 Währungen · Live-Kurse · PPP-Lebensindex',
         langLabel: 'Sprache',
         searchLabel: 'Währungen suchen',
@@ -788,8 +788,8 @@ const I18N = {
         insightWorse: (pct, to, from, amt, real) => `Kaufkraft sinkt ~${pct}% in ${to} vs. ${from}. ${amt} fühlt sich eher wie ${real} an.`
     },
     es: {
-        pageTitle: 'Conversor',
-        logo: 'Conversor',
+        pageTitle: 'Nomad OS',
+        logo: 'Nomad OS',
         tagline: '166 monedas · tipos en vivo · índice PPP',
         langLabel: 'Idioma',
         searchLabel: 'Buscar monedas',
@@ -908,8 +908,8 @@ const I18N = {
         insightWorse: (pct, to, from, amt, real) => `El poder adquisitivo baja ~${pct}% en ${to} vs. ${from}. ${amt} se siente más como ${real}.`
     },
     fr: {
-        pageTitle: 'Convertisseur',
-        logo: 'Convertisseur',
+        pageTitle: 'Nomad OS',
+        logo: 'Nomad OS',
         tagline: '166 devises · taux en direct · indice PPP',
         langLabel: 'Langue',
         searchLabel: 'Rechercher des devises',
@@ -1038,7 +1038,7 @@ function getI18nKey(lang) {
 }
 
 function detectLanguage() {
-    const saved = localStorage.getItem('konverter-lang');
+    const saved = localStorage.getItem('nomad-os-lang');
     const fromSaved = resolveLangCode(saved);
     if (fromSaved) return fromSaved;
 
@@ -1086,9 +1086,9 @@ function applyStaticTranslations() {
     document.documentElement.dir = (RTL_LANGS.has(currentLang) || RTL_LANGS.has(langBase)) ? 'rtl' : 'ltr';
     const page = document.body?.dataset?.page;
     if (page === 'hotels') {
-        document.title = `${t('hotelPageTitle')} · Konverter`;
+        document.title = `${t('hotelPageTitle')} · ${t('logo')}`;
     } else if (page === 'map') {
-        document.title = `${t('mapPageTitle')} · Konverter`;
+        document.title = `${t('mapPageTitle')} · ${t('logo')}`;
     } else {
         document.title = t('pageTitle');
     }
@@ -1130,7 +1130,7 @@ function setLanguage(lang) {
     const resolved = resolveLangCode(lang);
     if (!resolved) return;
     currentLang = resolved;
-    localStorage.setItem('konverter-lang', resolved);
+    localStorage.setItem('nomad-os-lang', resolved);
     applyStaticTranslations();
     if (typeof onLanguageChange === 'function') onLanguageChange();
 }

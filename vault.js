@@ -10,7 +10,7 @@ const VaultManager = {
     },
 
     _storageKey(uid) {
-        return `konverter-vault-${uid || 'guest'}`;
+        return `nomad-os-vault-${uid || 'guest'}`;
     },
 
     load(uid) {

@@ -1,4 +1,4 @@
-/** Konverter shared engine — FX, PPP, travel utilities (used by all modules) */
+/** Nomad OS shared engine — FX, PPP, travel utilities (used by all modules) */
 const RATES_API = 'https://open.er-api.com/v6/latest/USD';
 const WEATHER_API = 'https://api.open-meteo.com/v1/forecast';
 
@@ -530,7 +530,7 @@ const Toast = {
     init() {
         if (this._root) return;
         this._root = document.createElement('div');
-        this._root.id = 'konverter-toast-root';
+        this._root.id = 'nomad-os-toast-root';
         this._root.className = 'toast-root';
         this._root.setAttribute('aria-live', 'polite');
         document.body.appendChild(this._root);
@@ -607,7 +607,7 @@ function showSkeletonCards(container, count = 3, className = 'skeleton-card') {
     ).join('');
 }
 
-const KonverterShared = {
+const NomadOSShared = {
     converter,
     RATES_API,
     WEATHER_API,

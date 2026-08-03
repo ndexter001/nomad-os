@@ -1,6 +1,6 @@
 /** FX Volatility Watchdog — rate trends & localStorage alerts */
 const FX_HISTORY_API = 'https://api.frankfurter.app';
-const FX_ALERTS_KEY = 'konverter-rate-alerts';
+const FX_ALERTS_KEY = 'nomad-os-rate-alerts';
 const FX_TREND_CACHE_MS = 30 * 60 * 1000;
 
 let fxTrendCache = { key: '', data: null, fetchedAt: 0 };

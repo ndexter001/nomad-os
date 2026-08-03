@@ -180,7 +180,7 @@ function refreshCityContextForLanguage() {
     }
 
     try {
-        localStorage.setItem('konverter-selected-city', JSON.stringify(city));
+        localStorage.setItem('nomad-os-selected-city', JSON.stringify(city));
     } catch { /* quota */ }
 }
 
@@ -1268,7 +1268,7 @@ document.querySelectorAll('.quick-btn').forEach((btn) => {
     });
 });
 
-window.KonverterApp = {
+window.NomadOSApp = {
     converter,
     getPppProfile,
     calcNomadRunway,

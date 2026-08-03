@@ -1,100 +1,141 @@
-# Konverter — Travel Financial OS
+# Nomad OS
 
-A browser-based travel finance platform for global travelers and digital nomads — live FX across 166 currencies, purchasing-power parity (PPP), budgeting tools, and destination intelligence. No build step; plain HTML, CSS, and JavaScript.
+Your travel financial operating system — convert currencies, compare real purchasing power, plan runway, and understand true daily costs anywhere in the world.
 
-Built for an international audience: multi-language UI, worldwide city search, and cross-border payment guidance out of the box.
+Nomad OS runs entirely in the browser. No install, no build step, no backend required.
 
-## Pages
-
-| Page | File | Description |
-|------|------|-------------|
-| **Dashboard** | `index.html` | Currency converter, PPP living index, weather, payment optimizer, budget runway, FX watchdog, VAT refund calculator |
-| **True Cost Stays** | `hotels.html` | Trivago-style hotel search with true daily burn, nomad scoring, and deal comparison |
-| **COL & Weather Map** | `map.html` | Interactive map of cost-of-living and weather by city (Leaflet) |
-
-## Features
-
-- **166 currencies** with live rates from [open.er-api.com](https://open.er-api.com)
-- **PPP engine** — local living costs (coffee, meals, transport, coworking) adjusted by travel style (Backpacker 0.5× / Nomad 1× / Luxury 2.5×)
-- **City search** — geocoding with destination context, weather (Open-Meteo), and activity value index
-- **Smart Payment Optimizer** — compares card types (debit, credit, no-FX-fee) for cross-border spend
-- **Nomad Budget Runway** — home vs destination burn rate with progress bar
-- **FX Volatility Watchdog** — 7/30-day rate trends (Frankfurter API) and localStorage rate alerts
-- **VAT Refund Calculator** — estimated tax-back and receipt checklist per destination
-- **Nomad Survival Kit** — SIM costs, tipping culture, VAT rate, cash intensity
-- **Personal Budget Vault** — saved trips, subscriptions, and runway (requires sign-in)
-- **Dark / light theme** with system preference detection
-- **Internationalization** — English, German, Spanish, French, and Norwegian; language follows browser locale with English fallback
-
-## Getting started
-
-Serve the folder over HTTP (required for fetch APIs and module loading):
+## Quick start
 
 ```bash
-# Python
 python3 -m http.server 8080
-
-# Node (npx)
-npx serve .
+# or: npx serve .
 ```
 
-Open [http://localhost:8080/index.html](http://localhost:8080/index.html).
+Open [http://localhost:8080](http://localhost:8080). Serve over HTTP — `file://` will break API calls.
 
-Do **not** open HTML files directly via `file://` — external APIs and some browser features will fail.
+## Screenshots
 
-## Project structure
+| Dashboard | True Cost Stays | COL Map |
+|-----------|-----------------|---------|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Stays](docs/screenshots/stays.png) | ![Map](docs/screenshots/map.png) |
+
+Drop PNGs into `docs/screenshots/` (`dashboard.png`, `stays.png`, `map.png`). Dark and light theme captures both look good in the README.
+
+## What you get
+
+| Page | Route | What it does |
+|------|-------|--------------|
+| **Dashboard** | `index.html` | FX converter, PPP living index, weather, payment optimizer, budget runway, FX watchdog, VAT refund |
+| **True Cost Stays** | `hotels.html` | Hotel search with true daily burn, nomad scores, and deal comparison |
+| **COL & Weather Map** | `map.html` | Cost-of-living and weather layers on an interactive world map |
+
+## Core features
+
+- **166 currencies** — live rates from [open.er-api.com](https://open.er-api.com)
+- **PPP engine** — real local costs (coffee, meals, transport, coworking) scaled by travel style: Backpacker 0.5× · Nomad 1× · Luxury 2.5×
+- **Global city search** — Open-Meteo geocoding with destination context and weather
+- **Smart Payment Optimizer** — debit vs credit vs zero-FX card comparison for cross-border spend
+- **Nomad Budget Runway** — how long your funds last at home vs abroad
+- **FX Volatility Watchdog** — 7/30-day trends ([Frankfurter](https://api.frankfurter.app)) with rate alerts
+- **VAT Refund Calculator** — estimated tax-back and airport checklist per country
+- **Nomad Survival Kit** — SIM prices, tipping norms, VAT rates, cash vs card
+- **Personal Budget Vault** — saved trips, subscriptions, runway (sign-in required)
+- **Dark / light theme** — follows system preference, persisted locally
+- **5 languages** — English, Deutsch, Español, Français, Norsk (browser locale auto-detect, English fallback)
+
+## Tech stack
+
+Vanilla HTML, CSS, and JavaScript. Glassmorphism UI with CSS custom properties for theming. All data fetched client-side from public APIs.
+
+## Project layout
 
 ```
-├── index.html          Dashboard
-├── hotels.html         True Cost Stays
-├── map.html            Cost-of-living map
-├── styles.css          Glass UI, theme variables, responsive layout
-├── shared.js           FX, PPP, travel tiers, payment optimizer, runway math
-├── app.js              Dashboard orchestration
-├── hotels.js           Stays search, sorting, booking links
-├── map.js              Leaflet map logic
-├── geocoding.js        City autocomplete & geocoding
-├── survival.js         Nomad survival metadata UI
-├── fx-watchdog.js      Rate trends & alerts
-├── vat-refund.js       VAT refund calculator UI
-├── vault.js            Personal budget vault (localStorage)
-├── auth.js             Auth client (local demo / Firebase / Supabase hooks)
-├── theme.js            Dark/light theme toggle
-├── i18n.js             Translations & language picker
-├── currencies.js       Currency list & metadata
-└── languages.js        Supported locales
+index.html          Dashboard
+hotels.html         True Cost Stays
+map.html            COL & weather map
+styles.css          UI, themes, responsive layout
+shared.js           FX, PPP, travel tiers, payment & runway math
+app.js              Dashboard logic
+hotels.js           Stays search, sorting, booking links
+map.js              Leaflet map
+geocoding.js        City search & country→currency mapping
+survival.js         Nomad survival UI
+fx-watchdog.js      Rate trends & alerts
+vat-refund.js       VAT refund UI
+vault.js            Budget vault (localStorage)
+auth.js             Auth (local demo · Firebase · Supabase ready)
+theme.js            Theme toggle
+i18n.js             Translations
+currencies.js       166 currency definitions
+languages.js        Locale config
 ```
 
-## External APIs
+## APIs
 
-| Service | Used for |
-|---------|----------|
+| Service | Purpose |
+|---------|---------|
 | [open.er-api.com](https://open.er-api.com) | Live FX rates |
 | [api.frankfurter.app](https://api.frankfurter.app) | Historical rate trends |
-| [api.open-meteo.com](https://api.open-meteo.com) | Destination weather |
-| Geocoding (via `geocoding.js`) | City search & coordinates |
-| [Leaflet](https://leafletjs.com) | Map page (CDN) |
+| [api.open-meteo.com](https://api.open-meteo.com) | Weather forecasts |
+| [geocoding-api.open-meteo.com](https://open-meteo.com/en/docs/geocoding-api) | City search & reverse geocoding |
+| [Leaflet](https://leafletjs.com) | Map (loaded via CDN) |
 
-All APIs are called client-side. No backend is required for the default setup.
+## Auth
 
-## Auth & storage
+Default mode is **local demo auth** — accounts live in `localStorage`. To use Firebase or Supabase, set `AUTH_CONFIG.provider` and credentials in `auth.js`.
 
-Auth runs in **local demo mode** by default (`auth.js` → `AUTH_CONFIG.provider = 'local'`). Users and sessions are stored in `localStorage`. To wire Firebase or Supabase, set the provider and credentials in `AUTH_CONFIG`.
-
-Key `localStorage` keys:
+## Local storage keys
 
 | Key | Purpose |
 |-----|---------|
-| `konverter-theme` | `light` or `dark` |
-| `konverter-lang` | Active locale (`en`, `de`, `es`, `fr`, `no`) |
-| `konverter-auth-session` | Signed-in user session |
-| `konverter-vault-{uid}` | Budget vault data per user |
-| `konverter-rate-alerts` | FX watchdog alerts |
+| `nomad-os-theme` | `light` or `dark` |
+| `nomad-os-lang` | Active locale: `en` · `de` · `es` · `fr` · `no` |
+| `nomad-os-auth-session` | Signed-in session |
+| `nomad-os-local-users` | Demo auth user registry |
+| `nomad-os-vault-{uid}` | Budget vault per user |
+| `nomad-os-rate-alerts` | FX watchdog alerts |
+| `nomad-os-selected-city` | Last selected destination |
 
 ## Theming
 
-Theme is applied via `data-theme="dark"|"light"` on `<html>`. CSS custom properties in `styles.css` drive colors, cards, inputs, and shadows for both modes. An inline script in each HTML head prevents flash of wrong theme before paint.
+Set via `data-theme="dark"|"light"` on `<html>`. Variables in `styles.css` control colors, cards, inputs, and shadows. An inline head script prevents theme flash on load.
+
+## Deploy
+
+Nomad OS is static files — any static host works. Upload the project root (all `.html`, `.js`, `.css` files).
+
+**GitHub Pages**
+
+1. Push the repo to GitHub.
+2. Settings → Pages → source: `main` branch, folder `/ (root)`.
+3. Site live at `https://<user>.github.io/<repo>/`.
+
+**Netlify / Vercel**
+
+Drag-and-drop the folder, or connect the repo. No build command. Publish directory: `.` (root).
+
+**nginx**
+
+```nginx
+server {
+    listen 80;
+    root /var/www/nomad-os;
+    index index.html;
+    try_files $uri $uri/ /index.html;
+}
+```
+
+All external APIs are called from the browser — no server-side proxy needed for the default setup.
+
+## Roadmap
+
+- [ ] **Production auth** — wire Firebase Auth or Supabase (`auth.js` hooks are ready)
+- [ ] **Saved destination presets** — sync city/currency pairs to user account when signed in
+- [ ] **Dashboard Smart Stays widget** — hotel price estimates + PPP food/transit → total daily burn on the main page
+- [ ] **Real hotel API** — replace demo stays data with live pricing provider
+- [ ] **PWA / offline** — service worker for last-known rates when connectivity drops
+- [ ] **More locales** — Portuguese, Italian, Japanese
 
 ## License
 
-Private project — add a license here if you plan to open-source.
+Private project — add a license if you open-source it.

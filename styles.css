@@ -56,6 +56,10 @@
     --card-inner-accent: rgba(129, 140, 248, 0.08);
     --card-gradient-start: rgba(129, 140, 248, 0.07);
     --card-gradient-end: rgba(0, 0, 0, 0.28);
+    --chip-bg: rgba(255, 255, 255, 0.04);
+    --tooltip-bg: rgba(10, 11, 15, 0.92);
+    --shimmer-edge: rgba(255, 255, 255, 0.03);
+    --shimmer-mid: rgba(255, 255, 255, 0.07);
     --font: 'Instrument Sans', system-ui, sans-serif;
     --radius: 16px;
     --radius-sm: 10px;
@@ -112,6 +116,10 @@
     --card-inner-accent: rgba(99, 102, 241, 0.1);
     --card-gradient-start: rgba(99, 102, 241, 0.09);
     --card-gradient-end: rgba(238, 242, 255, 0.98);
+    --chip-bg: rgba(15, 23, 42, 0.06);
+    --tooltip-bg: rgba(255, 255, 255, 0.98);
+    --shimmer-edge: rgba(15, 23, 42, 0.05);
+    --shimmer-mid: rgba(255, 255, 255, 0.85);
     color-scheme: light;
 }
 
@@ -260,6 +268,7 @@ body {
     font-size: 1.75rem;
     font-weight: 700;
     letter-spacing: -0.03em;
+    color: var(--text);
 }
 
 .tagline {
@@ -505,6 +514,7 @@ body {
     font-weight: 700;
     letter-spacing: -0.02em;
     margin-bottom: 0.15rem;
+    color: var(--text);
 }
 
 .ppp-deep-insights__sub {
@@ -1170,6 +1180,7 @@ body {
     font-weight: 700;
     letter-spacing: -0.02em;
     margin-bottom: 0.15rem;
+    color: var(--text);
 }
 
 .stats-subtitle {
@@ -1205,6 +1216,7 @@ body {
     font-weight: 700;
     letter-spacing: -0.02em;
     margin-bottom: 0.2rem;
+    color: var(--text);
 }
 
 .summary-label {
@@ -1269,7 +1281,7 @@ body {
 .stat-row__name {
     font-size: 0.88rem;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1283,7 +1295,7 @@ body {
 .stat-row__rate {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text);
     font-variant-numeric: tabular-nums;
     text-align: right;
     white-space: nowrap;
@@ -1312,7 +1324,7 @@ body {
 
 .stat-row__change--flat {
     color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--chip-bg);
 }
 
 .stats-skeleton {
@@ -1320,9 +1332,9 @@ body {
     border-radius: var(--radius-sm);
     background: linear-gradient(
         90deg,
-        rgba(255, 255, 255, 0.03) 25%,
-        rgba(255, 255, 255, 0.07) 50%,
-        rgba(255, 255, 255, 0.03) 75%
+        var(--shimmer-edge) 25%,
+        var(--shimmer-mid) 50%,
+        var(--shimmer-edge) 75%
     );
     background-size: 200% 100%;
     animation: shimmer 1.4s ease-in-out infinite;
@@ -1463,7 +1475,7 @@ body {
     padding: 0.35rem 0.7rem;
     border-radius: 999px;
     border: 1px solid var(--border);
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--pill-bg);
     color: var(--text-muted);
     font-family: var(--font);
     font-size: 0.72rem;
@@ -1474,7 +1486,7 @@ body {
 
 .pill:hover {
     color: var(--text);
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: var(--border);
 }
 
 .pill--active {
@@ -1501,6 +1513,7 @@ body {
     font-size: 1.85rem;
     font-weight: 700;
     letter-spacing: -0.03em;
+    color: var(--text);
 }
 
 .hero-stats__change {
@@ -1522,7 +1535,7 @@ body {
 
 .hero-stats__change--flat {
     color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--chip-bg);
 }
 
 .dashboard-grid {
@@ -1551,7 +1564,7 @@ body {
     position: absolute;
     top: 0.5rem;
     transform: translateX(-50%);
-    background: rgba(10, 11, 15, 0.92);
+    background: var(--tooltip-bg);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 0.45rem 0.65rem;
@@ -1562,6 +1575,8 @@ body {
     flex-direction: column;
     gap: 0.1rem;
     z-index: 2;
+    color: var(--text);
+    box-shadow: 0 8px 24px var(--shadow);
 }
 
 .chart-tooltip__date {
@@ -1675,20 +1690,20 @@ body {
     width: 100%;
     padding: 0.6rem 0.65rem;
     margin-bottom: 0.35rem;
-    background: rgba(0, 0, 0, 0.18);
+    background: var(--card-inner);
     border: 1px solid transparent;
     border-radius: var(--radius-sm);
     cursor: pointer;
     font-family: var(--font);
-    color: #ffffff;
+    color: var(--text);
     text-align: left;
     appearance: none;
     transition: border-color 0.2s, background 0.2s;
 }
 
 .tableau-row:hover {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: var(--surface-hover);
+    border-color: var(--border);
 }
 
 .tableau-row--active {
@@ -1721,6 +1736,7 @@ body {
     display: block;
     font-size: 0.82rem;
     font-weight: 600;
+    color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1741,6 +1757,7 @@ body {
     font-size: 0.82rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
+    color: var(--text);
 }
 
 .tableau-row__chg {
@@ -1867,6 +1884,7 @@ body {
     font-size: 0.9rem;
     font-weight: 700;
     margin-bottom: 0.1rem;
+    color: var(--text);
 }
 
 .market-card__sub {
@@ -1895,7 +1913,7 @@ body {
 
 .market-card__change--flat {
     color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--chip-bg);
 }
 
 .market-card__price {
@@ -1903,6 +1921,7 @@ body {
     font-weight: 700;
     letter-spacing: -0.02em;
     margin-bottom: 0.15rem;
+    color: var(--text);
 }
 
 .market-card__unit {
@@ -1946,7 +1965,7 @@ body {
     align-items: center;
     gap: 0.5rem;
     padding: 0.55rem 0.85rem;
-    background: rgba(0, 0, 0, 0.22);
+    background: var(--card-inner);
     border: 1px solid var(--border);
     border-radius: 8px;
     white-space: nowrap;
@@ -1991,7 +2010,7 @@ body {
 
 .ticker-item__change--flat {
     color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--chip-bg);
 }
 
 .stat-row--static {
@@ -2092,6 +2111,7 @@ body {
     font-weight: 700;
     letter-spacing: -0.03em;
     margin-bottom: 0.25rem;
+    color: var(--text);
 }
 
 .auth-btn {
@@ -2186,6 +2206,7 @@ body {
     font-weight: 700;
     letter-spacing: -0.02em;
     margin-bottom: 0.2rem;
+    color: var(--text);
 }
 
 .greeting-banner__sub {
@@ -2330,6 +2351,7 @@ body {
     font-size: 1rem;
     font-weight: 600;
     margin-bottom: 0.2rem;
+    color: var(--text);
 }
 
 .nomad-runway-card__sub {
@@ -2492,6 +2514,7 @@ body {
     font-size: 1rem;
     font-weight: 700;
     margin: 0 0 0.2rem;
+    color: var(--text);
 }
 
 .finance-card__sub {
@@ -2544,7 +2567,7 @@ body {
 .fx-alert-status {
     font-size: 0.78rem;
     font-weight: 600;
-    color: #818cf8;
+    color: var(--accent);
     margin-bottom: 0.65rem;
 }
 
@@ -2572,8 +2595,9 @@ body {
     font-size: 0.72rem;
     padding: 0.35rem 0.55rem;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--card-inner);
+    border: 1px solid var(--border);
+    color: var(--text);
 }
 
 .fx-alert-item__remove {
@@ -2634,7 +2658,7 @@ body {
 }
 
 .vat-checklist__check {
-    color: #818cf8;
+    color: var(--accent);
     font-weight: 700;
     flex-shrink: 0;
 }
@@ -2689,6 +2713,7 @@ body {
     font-size: 1.1rem;
     font-weight: 700;
     margin-bottom: 1rem;
+    color: var(--text);
 }
 
 .auth-tabs {
@@ -2765,6 +2790,7 @@ body {
     font-size: 1rem;
     font-weight: 700;
     margin-bottom: 0.75rem;
+    color: var(--text);
 }
 
 .vault-guest-hint {
@@ -3041,6 +3067,7 @@ body {
 .hotel-card__name {
     font-size: 0.95rem;
     font-weight: 700;
+    color: var(--text);
 }
 
 .hotel-card__score {
@@ -3114,7 +3141,7 @@ body {
 }
 
 .hotel-skeleton {
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--card-inner);
     border-radius: var(--radius-sm);
     min-height: 4rem;
     animation: pulse 1.5s ease-in-out infinite;
@@ -4151,7 +4178,7 @@ body {
     padding: 0.55rem 0.65rem;
     font-size: 0.72rem;
     color: var(--text);
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--card-inner);
     border: 1px solid var(--border);
 }
 
@@ -4214,7 +4241,7 @@ body {
     position: relative;
     overflow: hidden;
     border-radius: var(--radius-sm);
-    background: rgba(0, 0, 0, 0.28);
+    background: var(--card-inner);
     border: 1px solid var(--border);
     min-height: 4.5rem;
 }
@@ -4236,9 +4263,9 @@ body {
     background: linear-gradient(
         90deg,
         transparent 0%,
-        rgba(255, 255, 255, 0.04) 45%,
-        rgba(255, 255, 255, 0.08) 50%,
-        rgba(255, 255, 255, 0.04) 55%,
+        var(--shimmer-edge) 45%,
+        var(--shimmer-mid) 50%,
+        var(--shimmer-edge) 55%,
         transparent 100%
     );
     background-size: 200% 100%;
@@ -4464,7 +4491,7 @@ body {
     padding: 0.55rem 0.75rem;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border);
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--pill-bg);
     color: var(--text-muted);
     font-family: var(--font);
     font-size: 0.78rem;
@@ -4484,16 +4511,16 @@ body {
 }
 
 .leaflet-popup.map-glass-popup .leaflet-popup-content-wrapper {
-    background: rgba(10, 11, 15, 0.92);
+    background: var(--tooltip-bg);
     border: 1px solid var(--border);
     border-radius: 14px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+    box-shadow: 0 20px 50px var(--shadow-lg);
     backdrop-filter: blur(18px);
     color: var(--text);
 }
 
 .leaflet-popup.map-glass-popup .leaflet-popup-tip {
-    background: rgba(10, 11, 15, 0.92);
+    background: var(--tooltip-bg);
     border: 1px solid var(--border);
 }
 
@@ -4754,7 +4781,33 @@ body {
 
 [data-theme="light"] .skeleton-card,
 [data-theme="light"] .hotel-skeleton {
-    background: linear-gradient(90deg, var(--surface-inset) 25%, rgba(255, 255, 255, 0.85) 50%, var(--surface-inset) 75%);
+    background: linear-gradient(90deg, var(--surface-inset) 25%, var(--shimmer-mid) 50%, var(--surface-inset) 75%);
+}
+
+[data-theme="light"] .stats-title,
+[data-theme="light"] .summary-value,
+[data-theme="light"] .stat-row,
+[data-theme="light"] .stat-row__name,
+[data-theme="light"] .stat-row__rate,
+[data-theme="light"] .tableau-row,
+[data-theme="light"] .tableau-row__name,
+[data-theme="light"] .tableau-row__price,
+[data-theme="light"] .market-card__title,
+[data-theme="light"] .market-card__price,
+[data-theme="light"] .hero-stats__price,
+[data-theme="light"] .logo-text,
+[data-theme="light"] .dash-page-title,
+[data-theme="light"] .ppp-deep-insights__title,
+[data-theme="light"] .finance-card__title,
+[data-theme="light"] .nomad-runway-card__title,
+[data-theme="light"] .vault-panel__title,
+[data-theme="light"] .survival-card__title,
+[data-theme="light"] .greeting-banner__text,
+[data-theme="light"] .hotel-card__name,
+[data-theme="light"] .modal__title,
+[data-theme="light"] .ticker-item__price,
+[data-theme="light"] .fx-alert-item {
+    color: var(--text);
 }
 
 @media (max-width: 640px) {

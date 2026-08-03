@@ -8,7 +8,7 @@ const AUTH_CONFIG = {
     supabase: { url: '', anonKey: '' }
 };
 
-const AUTH_STORAGE_KEY = 'konverter-auth-session';
+const AUTH_STORAGE_KEY = 'nomad-os-auth-session';
 
 const AuthClient = {
     user: null,
@@ -57,7 +57,7 @@ const AuthClient = {
             return this._supabaseSignUp(email, password, displayName);
         }
 
-        const users = JSON.parse(localStorage.getItem('konverter-local-users') || '{}');
+        const users = JSON.parse(localStorage.getItem('nomad-os-local-users') || '{}');
         if (users[email]) throw new Error('Account already exists');
         const user = {
             uid: `local_${Date.now()}`,
@@ -67,7 +67,7 @@ const AuthClient = {
             createdAt: new Date().toISOString()
         };
         users[email] = { ...user, passwordHash: btoa(password) };
-        localStorage.setItem('konverter-local-users', JSON.stringify(users));
+        localStorage.setItem('nomad-os-local-users', JSON.stringify(users));
         this._persist(user);
         return user;
     },
@@ -82,7 +82,7 @@ const AuthClient = {
             return this._supabaseSignIn(email, password);
         }
 
-        const users = JSON.parse(localStorage.getItem('konverter-local-users') || '{}');
+        const users = JSON.parse(localStorage.getItem('nomad-os-local-users') || '{}');
         const record = users[email];
         if (!record || record.passwordHash !== btoa(password)) {
             throw new Error('Invalid email or password');

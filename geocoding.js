@@ -1,7 +1,7 @@
 /** Global city geocoding — Open-Meteo search + reverse + country→currency */
 const GEOCODING_SEARCH_API = 'https://geocoding-api.open-meteo.com/v1/search';
 const GEOCODING_REVERSE_API = 'https://geocoding-api.open-meteo.com/v1/reverse';
-const CITY_STORAGE_KEY = 'konverter-selected-city';
+const CITY_STORAGE_KEY = 'nomad-os-selected-city';
 
 const EURO_ZONE = new Set([
     'AT', 'BE', 'HR', 'CY', 'EE', 'FI', 'FR', 'DE', 'GR', 'IE', 'IT', 'LV', 'LT', 'LU',

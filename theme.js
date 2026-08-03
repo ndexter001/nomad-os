@@ -1,5 +1,5 @@
 /** Dark / light theme — persisted to localStorage, respects system preference */
-const THEME_STORAGE_KEY = 'konverter-theme';
+const THEME_STORAGE_KEY = 'nomad-os-theme';
 
 function getStoredTheme() {
     try {
