@@ -264,6 +264,7 @@ const greetingText = document.getElementById('greeting-text');
 const greetingSub = document.getElementById('greeting-sub');
 const heroDestinationCard = document.getElementById('heroDestinationCard');
 const heroDestinationBg = document.getElementById('hero-destination-bg');
+const heroDestinationImg = document.getElementById('hero-destination-img');
 const heroGreeting = document.getElementById('hero-greeting');
 const heroCityName = document.getElementById('hero-city-name');
 const heroWeatherBadge = document.getElementById('hero-weather-badge');
@@ -288,8 +289,6 @@ const runwayProgressWrap = document.getElementById('runway-progress-wrap');
 const runwayProgressFill = document.getElementById('runway-progress-fill');
 const runwayProgressLabel = document.getElementById('runway-progress-label');
 const financeOsGrid = document.getElementById('finance-os-grid');
-
-const APP_STATE_CITY_KEY = 'nomados_last_city';
 
 function slugCitySeed(name) {
     const raw = name || 'nomad-world';
@@ -355,13 +354,13 @@ const savedCity = loadSavedCityState();
 
 /** Shared UI state — synced with CityContext, converter, and runway controls */
 const APP_STATE_DEFAULTS = {
-    activeCity: savedCity?.name || 'Tokyo',
-    countryName: savedCity?.country || 'Japan',
-    countryCode: savedCity?.countryCode || savedCity?.country_code || 'JP',
+    activeCity: savedCity?.name || '',
+    countryName: savedCity?.country || '',
+    countryCode: savedCity?.countryCode || savedCity?.country_code || '',
     burnZone: savedCity?.burnZone || 'moderate',
     heroImageSeed: savedCity?.seed || savedCity?.heroImageSeed || slugCitySeed(savedCity?.name) || 'nomad-world',
     homeCurrency: 'USD',
-    targetCurrency: savedCity?.currency || 'JPY',
+    targetCurrency: savedCity?.currency || 'EUR',
     exchangeRate: 155.20,
     pppMultiplier: 0.65,
     travelStyle: 'nomad', // 'backpacker' | 'nomad' | 'luxury'
@@ -685,7 +684,7 @@ function populateSelects(filter = '') {
     if (toVal && [...toCurrency.options].some((o) => o.value === toVal)) {
         toCurrency.value = toVal;
     } else if (!toCurrency.value) {
-        toCurrency.value = 'JPY';
+        toCurrency.value = APP_STATE_DEFAULTS.targetCurrency || 'EUR';
     }
 }
 
@@ -907,56 +906,67 @@ function renderStayCalculations() {
 }
 
 function applyCityToAppState(city) {
-    if (!city) return;
-    AppState.activeCity = city.name || city.label || APP_STATE_DEFAULTS.activeCity;
+    if (!city?.name && !city?.label) return;
+
+    const name = city.name || String(city.label).split(',')[0].trim();
+    AppState.activeCity = name || APP_STATE_DEFAULTS.activeCity;
     AppState.countryName = city.country || AppState.countryName;
-    AppState.countryCode = city.country_code || AppState.countryCode;
+    AppState.countryCode = city.country_code || city.countryCode || AppState.countryCode;
+    if (city.burnZone) AppState.burnZone = city.burnZone;
     if (city.currency) AppState.targetCurrency = city.currency;
-    AppState.heroImageSeed = heroImageSeed(city);
+    AppState.heroImageSeed = city.seed || city.heroImageSeed || heroImageSeed(city);
     applyAppStatePppMultiplier(city.currency);
-    persistAppStateCity(city);
+    persistAppStateCity({ ...city, name });
     renderStayCalculations();
 }
 
-function restoreSavedCityOnStartup() {
-    if (typeof CityContext === 'undefined') return null;
+function getDefaultTokyoHotspot() {
+    return HERO_HOTSPOTS.tokyo || {
+        name: 'Tokyo',
+        country: 'Japan',
+        country_code: 'JP',
+        countryCode: 'JP',
+        currency: 'JPY',
+        label: 'Tokyo, Japan',
+        burnZone: 'moderate',
+        seed: 'nomad-world'
+    };
+}
 
-    let city = CityContext.get();
-    if (!city) {
-        city = savedCityToContextCity(loadSavedCityState());
-        if (city) CityContext.set(city);
+function syncCitySearchInput(city) {
+    if (toCurrency && city?.currency) toCurrency.value = city.currency;
+    const input = $('city-search');
+    if (input && city) input.value = city.label || city.name || '';
+}
+
+function restoreDashboardCityOnStartup() {
+    const savedCity = loadSavedCityState();
+
+    if (savedCity?.name || savedCity?.label) {
+        const city = savedCityToContextCity(savedCity);
+        if (typeof CityContext !== 'undefined' && city) {
+            CityContext.set(city);
+        }
+        applyCityToAppState(savedCity);
+        syncCitySearchInput(city || savedCity);
+        return city || savedCity;
     }
-    return city;
+
+    if (typeof CityContext !== 'undefined') {
+        CityContext.clear();
+    }
+    return null;
+}
+
+function restoreSavedCityOnStartup() {
+    return restoreDashboardCityOnStartup();
 }
 
 function ensureAppStateDefaults() {
     if (fromCurrency && !fromCurrency.value) fromCurrency.value = APP_STATE_DEFAULTS.homeCurrency;
     if (toCurrency && !toCurrency.value) toCurrency.value = APP_STATE_DEFAULTS.targetCurrency;
 
-    const city = restoreSavedCityOnStartup()
-        ?? (typeof CityContext !== 'undefined' ? CityContext.get() : null);
-
-    if (city) {
-        if (toCurrency && city.currency) toCurrency.value = city.currency;
-        const input = $('city-search');
-        if (input && !input.value) input.value = city.label || city.name;
-        _appStateData.activeCity = city.name || city.label || _appStateData.activeCity;
-        _appStateData.countryName = city.country || _appStateData.countryName;
-        _appStateData.countryCode = city.country_code || _appStateData.countryCode;
-        if (city.currency) _appStateData.targetCurrency = city.currency;
-        _appStateData.heroImageSeed = slugCitySeed(city.name || city.label);
-        persistAppStateCity(city);
-    } else if (typeof CityContext !== 'undefined') {
-        const tokyo = HERO_HOTSPOTS.tokyo;
-        CityContext.set(tokyo);
-        if (toCurrency) toCurrency.value = tokyo.currency;
-        const input = $('city-search');
-        if (input) input.value = tokyo.label || tokyo.name;
-        _appStateData.activeCity = tokyo.name;
-        _appStateData.countryName = tokyo.country;
-        _appStateData.countryCode = tokyo.country_code;
-        persistAppStateCity(tokyo);
-    }
+    restoreDashboardCityOnStartup();
 
     if (runwayBudgetInput && (!runwayBudgetInput.value || parseFloat(runwayBudgetInput.value) <= 0)) {
         runwayBudgetInput.value = String(APP_STATE_DEFAULTS.totalBudget);
@@ -995,22 +1005,59 @@ function heroImageSeed(city) {
     return String(raw).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'nomad-world';
 }
 
+const HERO_LOCAL_IMAGES = {
+    'nomad-world': 'images/hero/nomad-world.jpg',
+    tokyo: 'images/hero/tokyo.jpg',
+    oslo: 'images/hero/oslo.jpg',
+    bangkok: 'images/hero/bangkok.jpg',
+    barcelona: 'images/hero/barcelona.jpg'
+};
+
+function heroImageCandidates(seed) {
+    const slug = slugCitySeed(seed);
+    const local = HERO_LOCAL_IMAGES[slug] || HERO_LOCAL_IMAGES['nomad-world'];
+    return [
+        local,
+        `https://picsum.photos/seed/${encodeURIComponent(slug)}/1400/520`,
+        HERO_LOCAL_IMAGES['nomad-world'],
+        'https://picsum.photos/seed/nomad-world/1400/520'
+    ];
+}
+
 function setHeroBackground(seed) {
-    if (!heroDestinationBg) return;
-    const safeSeed = encodeURIComponent(seed || 'nomad-world');
-    const primary = `https://picsum.photos/seed/${safeSeed}/1200/400`;
-    const fallback = 'https://picsum.photos/seed/nomad-world/1200/400';
+    if (!heroDestinationBg && !heroDestinationImg) return;
+
+    const urls = [...new Set(heroImageCandidates(seed))];
+    let attempt = 0;
 
     const apply = (url) => {
-        heroDestinationBg.style.backgroundImage = `url('${url}')`;
+        if (heroDestinationImg) {
+            heroDestinationImg.src = url;
+            heroDestinationImg.hidden = false;
+        }
+        if (heroDestinationBg) {
+            heroDestinationBg.style.backgroundImage =
+                `linear-gradient(180deg, rgba(15, 23, 42, 0.08) 0%, rgba(15, 23, 42, 0.62) 100%), url('${url}')`;
+            heroDestinationBg.style.backgroundSize = 'cover';
+            heroDestinationBg.style.backgroundPosition = 'center';
+        }
         heroDestinationCard?.classList.add('hero-destination--loaded');
         heroDestinationCard?.classList.remove('hero-destination--default');
     };
 
-    const img = new Image();
-    img.onload = () => apply(primary);
-    img.onerror = () => apply(fallback);
-    img.src = primary;
+    const tryNext = () => {
+        if (attempt >= urls.length) {
+            heroDestinationCard?.classList.add('hero-destination--default');
+            return;
+        }
+        const url = urls[attempt++];
+        const probe = new Image();
+        probe.onload = () => apply(url);
+        probe.onerror = tryNext;
+        probe.src = url;
+    };
+
+    tryNext();
 }
 
 function buildVibeBadges(destCode) {
@@ -1125,6 +1172,7 @@ function updateHeroDestinationCard() {
         }
         if (heroVibeBadges) heroVibeBadges.innerHTML = '';
         setHeroBackground('nomad-world');
+        if (welcomeEmptyState) welcomeEmptyState.hidden = false;
     }
 
     if (heroWeatherBadge) {
@@ -1613,15 +1661,18 @@ async function fetchDestinationWeather(cityMeta, from, to) {
     });
 
     try {
-        const response = typeof safeFetch === 'function'
-            ? await safeFetch(`${WEATHER_API}?${params}`, { signal: weatherAbort.signal }, { context: 'weather' })
-            : await fetch(`${WEATHER_API}?${params}`, { signal: weatherAbort.signal });
+        const response = typeof fetchWithRetry === 'function'
+            ? await fetchWithRetry(`${WEATHER_API}?${params}`, { signal: weatherAbort.signal }, { silent: true, context: 'weather', timeoutMs: 8000 })
+            : typeof safeFetch === 'function'
+                ? await safeFetch(`${WEATHER_API}?${params}`, { signal: weatherAbort.signal }, { context: 'weather' })
+                : await fetch(`${WEATHER_API}?${params}`, { signal: weatherAbort.signal });
         if (!response.ok) throw new Error('Weather unavailable');
         const data = await response.json();
         if (!data.current_weather) throw new Error('Invalid weather payload');
 
         weatherCache = { key: cacheKey, data, fetchedAt: now };
         renderWeatherCard(buildWeatherSnapshot(data, cityMeta, from, to));
+        if (typeof updateRetentionWidgets === 'function') updateRetentionWidgets();
     } catch (err) {
         if (err.name === 'AbortError') return;
         renderWeatherOffline(cityMeta, to);
@@ -1658,6 +1709,7 @@ function initDestinationCitySearch() {
         },
         onClear() {
             updateDestinationWeather();
+            updateHeroDestinationCard();
         }
     });
 
@@ -1691,6 +1743,7 @@ function selectDestinationCity(city) {
         }
         applyCityToAppState(city);
         updateSmartConverter();
+        updateHeroDestinationCard();
         if (typeof Toast !== 'undefined' && Toast.info) {
             const msg = typeof t === 'function'
                 ? t('toastCitySynced')(city.name, city.currency || toCurrency.value)
@@ -1866,6 +1919,7 @@ function updateConversion() {
     if (typeof updateFxWatchdog === 'function') updateFxWatchdog();
     if (typeof updateVatRefundCalculator === 'function') updateVatRefundCalculator();
     if (typeof updateSurvival === 'function') updateSurvival();
+    if (typeof updateRetentionWidgets === 'function') updateRetentionWidgets();
     if (typeof refreshVaultRunway === 'function') refreshVaultRunway();
     syncAppStateFromUI();
 }
@@ -1960,10 +2014,7 @@ async function fetchLiveRates() {
     if (statsList) statsList.classList.add('stats-list--loading');
 
     try {
-        const [fxResult] = await Promise.all([
-            fetchLiveFxRatesWithFallback('USD', { silent: true }),
-            fetchWeeklyRates()
-        ]);
+        const fxResult = await fetchLiveFxRatesWithFallback('USD', { silent: true });
 
         const liveRates = {};
         for (const code of CURRENCY_CODES) {
@@ -1990,22 +2041,33 @@ async function fetchLiveRates() {
         }
     } catch (err) {
         console.warn('FX fetch failed; applying offline fallback rates:', err);
-        const merged = typeof getMergedFallbackRates === 'function'
-            ? getMergedFallbackRates()
-            : { USD: 1, ...FALLBACK_RATES };
-        const liveRates = {};
-        for (const code of CURRENCY_CODES) {
-            if (code !== 'USD' && merged[code] != null) liveRates[code] = merged[code];
-        }
-        converter.updateRates(liveRates);
-        applyAppStateFxRates();
-        updateConversion();
-        renderStats();
+        applyBootstrapRates();
         setBadgeState('error', t('badgeOffline'));
         if (lastUpdated) lastUpdated.textContent = t('fallbackRates');
         if (statsUpdated) statsUpdated.textContent = t('badgeOffline');
     } finally {
         statsList?.classList.remove('stats-list--loading');
+    }
+
+    fetchWeeklyRates()
+        .then(() => renderStats())
+        .catch(() => { /* stats can refresh on next poll */ });
+}
+
+function applyBootstrapRates() {
+    const merged = typeof getMergedFallbackRates === 'function'
+        ? getMergedFallbackRates()
+        : { USD: 1, EUR: 0.92, JPY: 149, NOK: 10.85 };
+    const liveRates = {};
+    for (const code of CURRENCY_CODES) {
+        if (code !== 'USD' && merged[code] != null) liveRates[code] = merged[code];
+    }
+    converter.updateRates(liveRates);
+    applyAppStateFxRates();
+    updateConversion();
+    if (!lastRateUpdate) {
+        lastRateUpdate = new Date();
+        updateTimestamps();
     }
 }
 
@@ -2052,75 +2114,93 @@ function onLanguageChange() {
 }
 
 function initDashboardPage() {
-    if (!fromAmount || !fromCurrency || !toCurrency) return;
-
-    initLanguagePicker();
-    applyStaticTranslations();
-    populateSelects();
-    ensureAppStateDefaults();
-    updateTimestamps();
-    updateConversion();
-    fetchLiveRates();
-    startLiveRefresh();
-    startLiveClock();
-    startWeatherRefresh();
-    if (typeof initAuthModal === 'function') initAuthModal();
-    if (typeof initVaultUI === 'function') initVaultUI();
-    initDestinationCitySearch();
-    initTravelStyleSwitcher();
-    initPaymentCardToggle();
-    initNomadRunway();
-    initWelcomeHotspots();
-    updateHeroDestinationCard();
-    if (typeof initFxWatchdog === 'function') initFxWatchdog();
-    if (typeof initVatRefundCalculator === 'function') initVatRefundCalculator();
-    refreshCityContextForLanguage();
-    updateGreetingBanner();
-
-    if (typeof CityContext !== 'undefined') {
-        CityContext.onChange((city) => {
-            if (!city) {
-                updateWelcomeEmptyState(null);
-                updateHeroDestinationCard();
-                return;
-            }
-            applyCityToAppState(city);
-            const input = $('city-search');
-            if (input && document.activeElement !== input) {
-                input.value = city.label || city.name;
-            }
-            updateHeroDestinationCard();
-        });
+    if (!fromAmount || !fromCurrency || !toCurrency) {
+        console.warn('[Nomad OS] Converter elements missing — dashboard init skipped');
+        return;
     }
 
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            fetchLiveRates();
-            updateDestinationWeather();
+    try {
+        initLanguagePicker();
+        applyStaticTranslations();
+        populateSelects();
+        ensureAppStateDefaults();
+        applyBootstrapRates();
+        setBadgeState('loading', t('badgeLoading'));
+        fetchLiveRates();
+        startLiveRefresh();
+        startLiveClock();
+        startWeatherRefresh();
+        if (typeof initAuthModal === 'function') initAuthModal();
+        if (typeof initVaultUI === 'function') initVaultUI();
+        initDestinationCitySearch();
+        initTravelStyleSwitcher();
+        initPaymentCardToggle();
+        initNomadRunway();
+        initWelcomeHotspots();
+        updateHeroDestinationCard();
+        if (typeof initFxWatchdog === 'function') initFxWatchdog();
+        if (typeof initVatRefundCalculator === 'function') initVatRefundCalculator();
+        if (typeof initTravelPassport === 'function') initTravelPassport();
+        if (typeof initRetentionEngine === 'function') initRetentionEngine();
+        refreshCityContextForLanguage();
+        updateGreetingBanner();
+
+        if (typeof CityContext !== 'undefined') {
+            CityContext.onChange((city) => {
+                if (!city) {
+                    updateWelcomeEmptyState(null);
+                    updateHeroDestinationCard();
+                    return;
+                }
+                applyCityToAppState(city);
+                const input = $('city-search');
+                if (input && document.activeElement !== input) {
+                    input.value = city.label || city.name;
+                }
+                updateHeroDestinationCard();
+            });
         }
-    });
 
-    bind(currencySearch, 'input', () => {
-        populateSelects(currencySearch?.value || '');
-    });
-    bind(fromAmount, 'input', updateConversion);
-    bind(fromCurrency, 'change', () => {
-        AppState.homeCurrency = fromCurrency.value;
-    });
-    bind(toCurrency, 'change', () => {
-        AppState.targetCurrency = toCurrency.value;
-    });
-    bind(swapBtn, 'click', swapCurrencies);
-
-    document.querySelectorAll('.quick-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            if (fromAmount) fromAmount.value = btn.dataset.amount || '';
-            updateConversion();
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                fetchLiveRates();
+                updateDestinationWeather();
+            }
         });
-    });
+
+        bind(currencySearch, 'input', () => {
+            populateSelects(currencySearch?.value || '');
+        });
+        bind(fromAmount, 'input', updateConversion);
+        bind(fromCurrency, 'change', () => {
+            AppState.homeCurrency = fromCurrency.value;
+        });
+        bind(toCurrency, 'change', () => {
+            AppState.targetCurrency = toCurrency.value;
+        });
+        bind(swapBtn, 'click', swapCurrencies);
+
+        document.querySelectorAll('.quick-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                if (fromAmount) fromAmount.value = btn.dataset.amount || '';
+                updateConversion();
+            });
+        });
+    } catch (err) {
+        console.error('[Nomad OS] Dashboard init failed:', err);
+        try {
+            applyBootstrapRates();
+            setBadgeState('error', t('badgeOffline'));
+        } catch { /* last resort */ }
+    }
 }
 
-initDashboardPage();
+window.__nomadInitDashboard = initDashboardPage;
+try {
+    initDashboardPage();
+} catch (err) {
+    console.error('[Nomad OS] Fatal dashboard bootstrap:', err);
+}
 
 window.NomadOSApp = {
     converter,
@@ -2142,7 +2222,7 @@ window.NomadOSApp = {
     renderStayCalculations,
     applyCityToAppState,
     persistAppStateCity,
-    loadSavedCityState,
+    restoreDashboardCityOnStartup,
     applyAppStateFxRates,
     applyAppStatePppMultiplier,
     updateHeroDestinationCard,

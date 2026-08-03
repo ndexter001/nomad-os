@@ -21,43 +21,28 @@
 
     <main class="app app--map">
         <div class="dashboard-container">
-        <header class="header header--subpage">
-            <div class="header__top">
-                <nav class="dash-nav dash-nav--compact">
-                    <a href="index.html" class="dash-nav__link dash-nav__link--brand" aria-label="Nomad OS">
-                        <img src="icons/icon.svg" alt="" class="dash-nav__brand-icon" width="22" height="22">
-                    </a>
-                    <a href="map.html" class="dash-nav__link" aria-label="Map">🗺</a>
-                </nav>
-                <div class="header__top-actions">
-                    <div class="lang-picker">
-                        <label for="lang-select" class="lang-picker__label" data-i18n="langLabel">Language</label>
-                        <select id="lang-select" class="lang-select" aria-label="Language"></select>
-                    </div>
+        <header class="header header--subpage header--minimal">
+            <div class="header__top header__top--trip">
+                <div class="lang-picker lang-picker--bar">
+                    <label for="lang-select" class="lang-picker__label" data-i18n="langLabel">Language</label>
+                    <select id="lang-select" class="lang-select" aria-label="Language"></select>
                 </div>
+                <a href="index.html" class="dash-nav__link dash-nav__link--text" data-i18n="tripBackPlanner">← Trip planner</a>
             </div>
-            <a href="index.html" class="logo logo--link" aria-label="Nomad OS">
-                <img src="icons/icon.svg" alt="" class="logo-icon" width="34" height="34">
-                <span class="logo-wordmark" aria-hidden="true">
-                    <span class="logo-wordmark__nomad">Nomad</span>
-                    <span class="logo-wordmark__os">OS</span>
-                </span>
-            </a>
-            <h1 class="dash-page-title" data-i18n="mapPageTitle">Cost-of-Living & Weather Map</h1>
-            <p class="tagline" data-i18n="mapPageSub">Click anywhere · search any city · live PPI & weather</p>
         </header>
 
         <section class="map-layout">
             <aside class="map-sidebar glass-card">
                 <h2 class="map-sidebar__title" data-i18n="mapSearch">Search or click map</h2>
 
-                <label class="field-label" for="map-city-search" data-i18n="citySearchLabel">City</label>
+                <label class="field-label" for="map-city-search" data-i18n="mapLocationSearchLabel">City or country</label>
                 <div class="city-suggest">
                     <input type="search" id="map-city-search" class="currency-search"
-                        data-i18n-placeholder="citySearchPlaceholder" placeholder="Search any city…" autocomplete="off"
+                        data-i18n-placeholder="mapLocationSearchPlaceholder" placeholder="Search city or country…" autocomplete="off"
                         aria-controls="map-city-suggestions">
                     <div id="map-city-suggestions" class="city-suggest__list" role="listbox" hidden></div>
                 </div>
+                <div id="map-quick-countries" class="map-quick-countries" aria-label="Quick country search"></div>
 
                 <label class="field-label" for="map-home-currency" data-i18n="mapHome">Home currency</label>
                 <select id="map-home-currency" class="currency-select"></select>
@@ -82,15 +67,30 @@
 
     <script src="currencies.js?v=16"></script>
     <script src="languages.js?v=16"></script>
-    <script src="shared.js?v=28"></script>
-    <script src="geocoding.js?v=28"></script>
-    <script src="i18n.js?v=34"></script>
+    <script src="shared.js?v=29"></script>
+    <script src="geocoding.js?v=19"></script>
+    <script src="i18n.js?v=35"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="map.js?v=35"></script>
     <script>
-        initLanguagePicker();
-        applyStaticTranslations();
-        initMapPage();
+        function bootMapPage() {
+            try {
+                initLanguagePicker();
+                applyStaticTranslations();
+                initMapPage();
+            } catch (err) {
+                console.error('[map] boot failed:', err);
+                document.getElementById('map-error')?.removeAttribute('hidden');
+            }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bootMapPage);
+        } else {
+            bootMapPage();
+        }
+        window.addEventListener('load', () => {
+            if (typeof scheduleMapResize === 'function') scheduleMapResize();
+        });
     </script>
 </body>
 </html>

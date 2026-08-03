@@ -172,15 +172,94 @@ function openMapPopup(city, lat, lon) {
         });
 }
 
-function setActiveDestination(city) {
-    if (!city) return;
-    try {
-        CityContext.set(city);
-        window.location.href = 'index.html';
-    } catch { /* ignore */ }
+function bindMapPopupDelegation() {
+    if (document.body?.dataset.mapPopupBound === '1') return;
+    document.body.dataset.mapPopupBound = '1';
+
+    document.addEventListener('click', (ev) => {
+        const btn = ev.target.closest('[data-action="set-dest"]');
+        if (!btn || !activePopup?._cityData) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        setActiveDestination(activePopup._cityData);
+    });
 }
 
-async function onMapLocation(lat, lon) {
+function enrichMapCity(city) {
+    if (!city) return null;
+    const payload = { ...city };
+    if (!payload.currency && payload.country_code) {
+        payload.currency = resolveCurrencyForCountry(payload.country_code);
+    }
+    if (!payload.currency && payload.lat != null && payload.lon != null) {
+        const inferred = inferCountryFromCoords(payload.lat, payload.lon);
+        if (inferred) {
+            payload.country_code = payload.country_code || inferred.country_code;
+            payload.country = payload.country !== 'Unknown' && payload.country
+                ? payload.country
+                : inferred.country;
+            payload.currency = resolveCurrencyForCountry(inferred.country_code);
+        }
+    }
+    if (!payload.label) {
+        payload.label = payload.country && payload.country !== 'Unknown'
+            ? `${payload.name}, ${payload.country}`
+            : payload.name;
+    }
+    return payload;
+}
+
+/** Rough bbox fallback when reverse geocode returns nothing */
+function inferCountryFromCoords(lat, lon) {
+    if (lat >= 58 && lat <= 71 && lon >= 4 && lon <= 31) return { country_code: 'NO', country: 'Norway' };
+    if (lat >= 55 && lat <= 69 && lon >= 11 && lon <= 24) return { country_code: 'SE', country: 'Sweden' };
+    if (lat >= 54 && lat <= 58 && lon >= 8 && lon <= 13) return { country_code: 'DK', country: 'Denmark' };
+    if (lat >= 24 && lat <= 49 && lon >= -125 && lon <= -66) return { country_code: 'US', country: 'United States' };
+    if (lat >= 35 && lat <= 46 && lon >= 129 && lon <= 146) return { country_code: 'JP', country: 'Japan' };
+    if (lat >= 5 && lat <= 21 && lon >= 97 && lon <= 106) return { country_code: 'TH', country: 'Thailand' };
+    return null;
+}
+
+function setActiveDestination(city) {
+    const payload = enrichMapCity(city);
+    if (!payload?.name && !payload?.label) return;
+    try {
+        CityContext.set(payload);
+        window.location.assign('index.html');
+    } catch (err) {
+        console.warn('[map] setActiveDestination failed:', err);
+    }
+}
+
+function onMapLocationSelect(location) {
+    if (!mapInstance || !location) return;
+
+    if (location.isCountry && location.mapLat != null) {
+        mapInstance.setView([location.mapLat, location.mapLon], location.mapZoom || 6);
+    }
+
+    const lat = location.lat;
+    const lon = location.lon;
+
+    if (location.isCountry && location.capital) {
+        const city = enrichMapCity({
+            id: `country-${location.country_code}`,
+            name: location.capital,
+            country: location.country || location.name,
+            country_code: location.country_code,
+            lat,
+            lon,
+            currency: location.currency,
+            label: `${location.capital}, ${location.name}`
+        });
+        onMapLocation(lat, lon, city);
+        return;
+    }
+
+    onMapLocation(lat, lon, location.isCountry ? enrichMapCity(location) : null);
+}
+
+async function onMapLocation(lat, lon, presetCity = null) {
     if (!mapInstance) return;
 
     if (mapClickMarker) mapInstance.removeLayer(mapClickMarker);
@@ -192,8 +271,30 @@ async function onMapLocation(lat, lon) {
         fillOpacity: 0.9
     }).addTo(mapInstance);
 
+    let city = presetCity ? enrichMapCity(presetCity) : null;
+
+    if (city) {
+        CityContext.set(city);
+        mapInstance.setView([lat, lon], Math.max(mapInstance.getZoom(), city.isCountry ? (city.mapZoom || 6) : 8));
+        openMapPopup(city, lat, lon);
+    } else {
+        const stub = {
+            id: `${lat},${lon}`,
+            name: `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`,
+            country: '…',
+            country_code: '',
+            lat,
+            lon,
+            currency: null,
+            label: `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`
+        };
+        mapInstance.setView([lat, lon], Math.max(mapInstance.getZoom(), 6));
+        openMapPopup(stub, lat, lon);
+    }
+
+    if (city) return;
+
     const lang = typeof currentLang !== 'undefined' ? currentLang.split('-')[0] : 'en';
-    let city = null;
     try {
         city = await reverseGeocodeCity(lat, lon, lang);
     } catch { /* ignore */ }
@@ -209,11 +310,28 @@ async function onMapLocation(lat, lon) {
             currency: null,
             label: `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`
         };
+        const inferred = inferCountryFromCoords(lat, lon);
+        if (inferred) {
+            city.country = inferred.country;
+            city.country_code = inferred.country_code;
+            city.currency = resolveCurrencyForCountry(inferred.country_code);
+            city.label = `${city.name}, ${inferred.country}`;
+        }
+    } else {
+        city = enrichMapCity(city) || city;
     }
 
     CityContext.set(city);
-    mapInstance.setView([lat, lon], Math.max(mapInstance.getZoom(), 6));
-    openMapPopup(city, lat, lon);
+    if (activePopup?._cityData?.lat === lat && activePopup?._cityData?.lon === lon) {
+        activePopup._cityData = city;
+        loadPopupData(city, getMapHomeCode())
+            .then((html) => {
+                if (activePopup?._cityData?.lat === city.lat && activePopup?._cityData?.lon === city.lon) {
+                    activePopup.setContent(html);
+                }
+            })
+            .catch(() => { /* ignore */ });
+    }
 }
 
 function clearLayerGroup(key) {
@@ -222,6 +340,26 @@ function clearLayerGroup(key) {
         mapInstance.removeLayer(mapLayers[key]);
         mapLayers[key] = null;
     }
+}
+
+function fitMapToHotspots(maxZoom = 5) {
+    if (!mapInstance || !NOMAD_HOTSPOTS.length) return;
+    const bounds = L.latLngBounds(NOMAD_HOTSPOTS.map((s) => [s.lat, s.lon]));
+    mapInstance.fitBounds(bounds, { padding: [36, 36], maxZoom });
+}
+
+function mapMarkerRadius() {
+    const z = mapInstance?.getZoom() ?? 2;
+    if (z <= 3) return 14;
+    if (z <= 5) return 11;
+    return 8;
+}
+
+function mapCircleRadius(baseMeters) {
+    const z = mapInstance?.getZoom() ?? 2;
+    if (z <= 3) return baseMeters * 2.2;
+    if (z <= 5) return baseMeters * 1.4;
+    return baseMeters;
 }
 
 function buildPpiLayer(homeCode) {
@@ -236,12 +374,12 @@ function buildPpiLayer(homeCode) {
         const score = getPpiScore(homeCode, cur);
         const color = getPpiColor(score);
         L.circle([spot.lat, spot.lon], {
-            radius: 180000,
+            radius: mapCircleRadius(180000),
             color: color,
             fillColor: color,
-            fillOpacity: 0.22,
-            weight: 1,
-            opacity: 0.55
+            fillOpacity: 0.32,
+            weight: 2,
+            opacity: 0.75
         }).addTo(group);
     }
     group.addTo(mapInstance);
@@ -267,14 +405,14 @@ async function buildTempLayer() {
         }
         const temp = weather.ok ? weather.temp : null;
         const color = tempOverlayColor(temp);
-        const radius = temp != null && temp >= 20 ? 220000 : 160000;
+        const radius = temp != null && temp >= 20 ? mapCircleRadius(220000) : mapCircleRadius(160000);
         L.circle([spot.lat, spot.lon], {
             radius,
             color,
             fillColor: color,
-            fillOpacity: temp != null && temp >= 20 ? 0.28 : 0.15,
-            weight: 1,
-            opacity: 0.6
+            fillOpacity: temp != null && temp >= 20 ? 0.38 : 0.22,
+            weight: 2,
+            opacity: 0.75
         }).addTo(group);
     });
 
@@ -298,7 +436,7 @@ function buildNomadLayer(homeCode) {
             : '—';
 
         const marker = L.circleMarker([spot.lat, spot.lon], {
-            radius: 8,
+            radius: mapMarkerRadius(),
             fillColor: '#a78bfa',
             color: '#fff',
             weight: 2,
@@ -313,8 +451,7 @@ function buildNomadLayer(homeCode) {
 
         marker.on('click', (e) => {
             L.DomEvent.stopPropagation(e);
-            const city = cityFromHotspot(spot);
-            onMapLocation(spot.lat, spot.lon);
+            onMapLocation(spot.lat, spot.lon, cityFromHotspot(spot));
         });
 
         marker.addTo(group);
@@ -326,14 +463,41 @@ function buildNomadLayer(homeCode) {
 function refreshMapLayers() {
     if (!mapInstance) return;
     const homeCode = getMapHomeCode();
-    buildPpiLayer(homeCode);
-    buildTempLayer().catch(() => { /* ignore */ });
-    buildNomadLayer(homeCode);
+    try {
+        buildPpiLayer(homeCode);
+        buildTempLayer().catch(() => { /* ignore */ });
+        buildNomadLayer(homeCode);
+    } catch (err) {
+        console.warn('[map] refreshMapLayers failed:', err);
+    }
 }
 
 function toggleLayer(key, btn) {
     layerState[key] = !layerState[key];
     btn?.classList.toggle('map-layer-btn--active', layerState[key]);
+    if (layerState[key] && mapInstance && mapInstance.getZoom() < 4) {
+        fitMapToHotspots(5);
+    }
+    refreshMapLayers();
+}
+
+function bindMapLayerToggles() {
+    const wrap = document.querySelector('.map-layer-toggles');
+    if (!wrap || wrap.dataset.bound === '1') return;
+    wrap.dataset.bound = '1';
+
+    wrap.addEventListener('click', (e) => {
+        const btn = e.target.closest('.map-layer-btn');
+        if (!btn) return;
+        if (btn.id === 'layer-ppi') toggleLayer('ppi', btn);
+        else if (btn.id === 'layer-temp') toggleLayer('temp', btn);
+        else if (btn.id === 'layer-nomad') toggleLayer('nomad', btn);
+    });
+}
+
+function scheduleMapResize() {
+    if (!mapInstance) return;
+    mapInstance.invalidateSize({ animate: false });
     refreshMapLayers();
 }
 
@@ -344,21 +508,31 @@ function initMapPage() {
         return;
     }
 
-    mapInstance = L.map(mapEl, { zoomControl: true }).setView([20, 0], 2);
+    if (mapInstance) {
+        mapInstance.remove();
+        mapInstance = null;
+    }
+
+    mapInstance = L.map(mapEl, {
+        zoomControl: true,
+        tap: true,
+        touchZoom: true,
+        scrollWheelZoom: true
+    }).setView([20, 0], 2);
+
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OSM &copy; CARTO',
         subdomains: 'abcd',
         maxZoom: 19
     }).addTo(mapInstance);
 
-    mapInstance.on('click', (e) => onMapLocation(e.latlng.lat, e.latlng.lng));
-
-    mapInstance.on('popupopen', (e) => {
-        const popupEl = e.popup.getElement();
-        popupEl?.querySelector('[data-action="set-dest"]')?.addEventListener('click', () => {
-            setActiveDestination(e.popup._cityData);
-        });
+    mapInstance.on('click', (e) => {
+        L.DomEvent.stopPropagation(e);
+        onMapLocation(e.latlng.lat, e.latlng.lng);
     });
+
+    bindMapPopupDelegation();
+    bindMapLayerToggles();
 
     const homeSel = $('map-home-currency');
     if (homeSel) {
@@ -375,22 +549,75 @@ function initMapPage() {
         });
     }
 
-    bind($('layer-ppi'), 'click', (e) => toggleLayer('ppi', e.currentTarget));
-    bind($('layer-temp'), 'click', (e) => toggleLayer('temp', e.currentTarget));
-    bind($('layer-nomad'), 'click', (e) => toggleLayer('nomad', e.currentTarget));
-
     const cityInput = $('map-city-search');
     const cityList = $('map-city-suggestions');
-    if (cityInput && cityList) {
-        initCitySearch({
-            inputEl: cityInput,
-            listEl: cityList,
-            debounceMs: 300,
-            onSelect(city) {
-                onMapLocation(city.lat, city.lon);
-            }
-        });
+    if (cityInput && cityList && typeof initCitySearch === 'function') {
+        try {
+            const fetchSuggestions = typeof fetchMapLocationSuggestions === 'function'
+                ? fetchMapLocationSuggestions
+                : fetchCitySuggestions;
+            initCitySearch({
+                inputEl: cityInput,
+                listEl: cityList,
+                debounceMs: 280,
+                minChars: 2,
+                fetchSuggestions,
+                onSelect(location) {
+                    onMapLocationSelect(location);
+                }
+            });
+        } catch (err) {
+            console.warn('[map] city search init failed:', err);
+        }
     }
 
-    fetchLiveFxRates().finally(() => refreshMapLayers());
+    try {
+        initMapQuickCountries();
+    } catch (err) {
+        console.warn('[map] quick countries init failed:', err);
+    }
+
+    refreshMapLayers();
+    fitMapToHotspots(5);
+
+    requestAnimationFrame(scheduleMapResize);
+    setTimeout(scheduleMapResize, 120);
+    setTimeout(scheduleMapResize, 400);
+
+    window.addEventListener('resize', scheduleMapResize, { passive: true });
+
+    fetchLiveFxRates()
+        .catch(() => { /* offline — layers still use PPP profiles */ })
+        .finally(() => refreshMapLayers());
+}
+
+function initMapQuickCountries() {
+    const wrap = $('map-quick-countries');
+    if (!wrap) return;
+
+    const picks = [
+        { code: 'NO', label: '🇳🇴 Norway' },
+        { code: 'TH', label: '🇹🇭 Thailand' },
+        { code: 'JP', label: '🇯🇵 Japan' },
+        { code: 'PT', label: '🇵🇹 Portugal' },
+        { code: 'MX', label: '🇲🇽 Mexico' },
+        { code: 'GE', label: '🇬🇪 Georgia' }
+    ];
+
+    wrap.innerHTML = picks.map((p) =>
+        `<button type="button" class="map-quick-btn" data-country-code="${p.code}">${p.label}</button>`
+    ).join('');
+
+    wrap.querySelectorAll('[data-country-code]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const hit = searchCountriesLocal(btn.dataset.countryCode)[0]
+                || COUNTRY_SEARCH_INDEX.find((c) => c.code === btn.dataset.countryCode);
+            if (!hit) return;
+            const loc = searchCountriesLocal(hit.names?.[0] || hit.code)[0];
+            if (loc) {
+                $('map-city-search').value = loc.label;
+                onMapLocationSelect(loc);
+            }
+        });
+    });
 }

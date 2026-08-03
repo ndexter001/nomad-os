@@ -1,0 +1,64 @@
+
+            <section class="retention-grid" id="retention-grid" hidden>
+                <article class="retention-card glass-card" id="ripoff-radar-card" hidden>
+                    <header class="retention-card__header">
+                        <div>
+                            <h3 class="retention-card__title" data-i18n="retentionRipoffTitle">Local Purchasing Power &amp; Rip-Off Radar</h3>
+                            <p class="retention-card__sub" data-i18n="retentionRipoffSub">Fair Price Index vs your home baseline</p>
+                        </div>
+                        <div class="fair-price-index-wrap">
+                            <span id="fair-price-index" class="fair-price-index">—</span>
+                            <span class="fair-price-index__label" data-i18n="retentionFairIndex">Fair index</span>
+                        </div>
+                    </header>
+                    <div id="fair-price-list" class="fair-price-list"></div>
+                    <div id="tipping-scam-alert" class="tipping-scam-alert"></div>
+                </article>
+
+                <article class="retention-card glass-card" id="microclimate-card" hidden>
+                    <header class="retention-card__header">
+                        <div>
+                            <h3 class="retention-card__title" data-i18n="retentionMicroTitle">Microclimate Shield &amp; Activity Index</h3>
+                            <p class="retention-card__sub" data-i18n="retentionMicroSub">What to wear · best outdoor window · rain pivot</p>
+                        </div>
+                        <div class="activity-score-wrap">
+                            <span id="activity-feasibility-score" class="activity-score">—</span>
+                            <span class="activity-score__label" data-i18n="retentionActivityScore">Activity score</span>
+                        </div>
+                    </header>
+                    <div class="activity-score-bar"><div id="activity-score-fill" class="activity-score-bar__fill"></div></div>
+                    <div id="microclimate-metrics" class="microclimate-metrics"></div>
+                    <p class="microclimate-window"><span data-i18n="retentionBestWindow">Best 2-hour outdoor window</span>: <strong id="best-window-slot">—</strong></p>
+                    <ul id="microclimate-alerts" class="microclimate-alerts"></ul>
+                </article>
+
+                <article class="retention-card glass-card" id="packing-matrix-card" hidden>
+                    <header class="retention-card__header">
+                        <div>
+                            <h3 class="retention-card__title" data-i18n="retentionPackingTitle">Smart Packing Matrix</h3>
+                            <p class="retention-card__sub" data-i18n="retentionPackingSub">Forecast-driven clothing &amp; gear</p>
+                        </div>
+                        <label class="field-label" for="packing-duration" data-i18n="retentionPackingDays">Trip days</label>
+                        <input type="number" id="packing-duration" class="amount-input" min="1" max="90" value="7">
+                    </header>
+                    <div class="packing-columns">
+                        <div><h4 data-i18n="retentionClothing">Clothing</h4><ul id="packing-clothing-list"></ul></div>
+                        <div><h4 data-i18n="retentionGear">Gear</h4><ul id="packing-gear-list"></ul></div>
+                    </div>
+                    <p id="packing-meta" class="packing-meta"></p>
+                    <button type="button" id="archive-trip-btn" class="btn-secondary" data-i18n="retentionArchiveTrip">Archive trip to passport</button>
+                </article>
+
+                <article class="retention-card glass-card" id="travel-passport-card" hidden>
+                    <header class="retention-card__header">
+                        <div>
+                            <h3 class="retention-card__title" data-i18n="retentionPassportTitle">Offline Travel Passport</h3>
+                            <p class="retention-card__sub" data-i18n="retentionPassportSub">Cached cheatsheets · emergency numbers · archives</p>
+                        </div>
+                        <span id="passport-offline-status" class="passport-offline-status">—</span>
+                    </header>
+                    <div id="passport-emergency" class="passport-emergency"></div>
+                    <div id="passport-phrases" class="passport-phrases"></div>
+                    <ul id="passport-archive-list" class="passport-archive-list"></ul>
+                </article>
+            </section>

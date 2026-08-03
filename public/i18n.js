@@ -402,8 +402,8 @@ const I18N = {
         insightWorse: (pct, to, from, amt, real) => `Kjøpekraften faller ~${pct}% i ${to} sammenlignet med ${from}. Høyere levekostnader og premium prising spiser opp fordelen fra valutakursen — ${amt} føles mer som ${real} i lokal kjøpekraft.`
     },
     en: {
-        pageTitle: 'Nomad OS · Travel Financial OS',
-        logo: 'Nomad OS',
+        pageTitle: 'Trip Planner',
+        logo: 'Trip Planner',
         tagline: 'Travel financial OS · 166 currencies · live rates · PPP',
         travelStyleLabel: 'Travel style',
         travelStyleBackpacker: '🎒 Backpacker',

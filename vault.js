@@ -54,6 +54,22 @@ const VaultManager = {
         this.renderTrips();
     },
 
+    /** Link vault trip save with Travel Passport archive snapshot */
+    archiveTripFromVault(tripId) {
+        const trip = this.data.trips.find((t) => t.id === tripId);
+        if (!trip || typeof TravelPassport === 'undefined') return;
+        const city = typeof CityContext !== 'undefined' ? CityContext.get() : null;
+        TravelPassport.archiveCurrentTrip({
+            city: trip.name,
+            country: city?.country,
+            countryCode: city?.country_code,
+            from: this.data.homeCurrency,
+            to: trip.destCurrency,
+            budget: trip.budget,
+            snapshot: null
+        }).then(() => TravelPassport.renderPassportUI());
+    },
+
     removeTrip(id) {
         this.data.trips = this.data.trips.filter((t) => t.id !== id);
         this.save(AuthClient.getUid());

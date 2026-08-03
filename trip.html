@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Actionable trip planner — weather-optimized itinerary, daily burn budget, packing checklist, offline vault.">
+    <meta name="theme-color" content="#0a0b0f">
+    <title>Trip Planner · Nomad OS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Legacy engine modules (globals) -->
+    <script src="/currencies.js"></script>
+    <script src="/languages.js"></script>
+    <script src="/shared.js"></script>
+    <script src="/geocoding.js"></script>
+    <script src="/i18n.js"></script>
+    <script src="/retention-engine.js"></script>
+    <script src="/travel-passport.js"></script>
+
+    <script type="module" src="/src/trip-main.tsx"></script>
+</body>
+</html>

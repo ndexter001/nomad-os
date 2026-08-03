@@ -3302,16 +3302,70 @@ body {
     font-size: 0.65rem;
 }
 
+.header__top--trip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 1rem;
+}
+
+.lang-picker--bar {
+    flex: 1;
+}
+
+.dash-nav__link--text {
+    font-size: 0.78rem;
+    color: var(--accent);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.header--minimal {
+    margin-bottom: 0.5rem;
+}
+
+.header--minimal .header__top {
+    margin-bottom: 0;
+}
+
 .map-canvas-wrap {
     padding: 0;
     overflow: hidden;
+    position: relative;
+    min-height: var(--map-height);
 }
 
-.map-canvas {
+.map-canvas,
+.map-canvas.leaflet-container,
+#col-map.leaflet-container {
     height: var(--map-height);
+    min-height: 380px;
     width: 100%;
     border-radius: 12px;
     z-index: 1;
+    touch-action: none;
+    cursor: crosshair;
+}
+
+.map-canvas .leaflet-pane {
+    z-index: 400;
+}
+
+.map-canvas .leaflet-overlay-pane {
+    z-index: 450;
+}
+
+.map-canvas .leaflet-marker-pane {
+    z-index: 500;
+}
+
+.map-canvas .leaflet-popup-pane {
+    z-index: 700;
+}
+
+.map-canvas .leaflet-control-container {
+    z-index: 800;
 }
 
 .map-error,
@@ -3396,6 +3450,34 @@ body {
     font-size: 0.68rem;
     color: var(--text-muted);
     margin-top: 0.15rem;
+}
+
+.city-suggest__item--country .city-suggest__name {
+    color: var(--accent);
+}
+
+.map-quick-countries {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0.45rem 0 0.15rem;
+}
+
+.map-quick-btn {
+    font-family: var(--font);
+    font-size: 0.68rem;
+    padding: 0.3rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--card-inner);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.map-quick-btn:hover {
+    border-color: var(--accent);
+    color: var(--text);
 }
 
 .city-search-hint,
@@ -5022,7 +5104,11 @@ a {
     }
 
     .hero-destination {
-        min-height: 200px;
+        min-height: 220px;
+    }
+
+    .hero-destination__content {
+        min-height: 220px;
     }
 
     .hero-destination__city {
@@ -5104,7 +5190,7 @@ a {
 .hero-destination {
     position: relative;
     margin-top: 1.25rem;
-    min-height: 240px;
+    min-height: 280px;
     border-radius: var(--radius);
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -5116,21 +5202,33 @@ a {
 .hero-destination__bg {
     position: absolute;
     inset: 0;
-    background-color: #0f172a;
+    background-color: #1e293b;
     background-size: cover;
     background-position: center;
     transform: scale(1.02);
     transition: transform 8s ease-out, opacity 0.6s ease;
 }
 
-.hero-destination--loaded .hero-destination__bg {
+.hero-destination__photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transform: scale(1.03);
+    transition: transform 8s ease-out, opacity 0.5s ease;
+}
+
+.hero-destination--loaded .hero-destination__bg,
+.hero-destination--loaded .hero-destination__photo {
     transform: scale(1);
 }
 
 .hero-destination__overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.95) 100%);
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.12) 0%, rgba(15, 23, 42, 0.72) 55%, rgba(15, 23, 42, 0.88) 100%);
     pointer-events: none;
 }
 
@@ -5141,7 +5239,7 @@ a {
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
-    min-height: 240px;
+    min-height: 280px;
     justify-content: flex-end;
 }
 
@@ -5204,10 +5302,19 @@ a {
 }
 
 .hero-destination--default .hero-destination__bg {
-    background-image: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(16, 185, 129, 0.2)),
-        url('https://picsum.photos/seed/nomad-world/1200/400');
+    background-image: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(16, 185, 129, 0.18)),
+        url('images/hero/nomad-world.jpg');
     background-size: cover;
     background-position: center;
+}
+
+.header-city-search {
+    margin-top: 1rem;
+    text-align: left;
+}
+
+.header-city-search .city-suggest {
+    position: relative;
 }
 
 /* ── Welcome empty state ── */
@@ -5376,4 +5483,234 @@ a {
 .welcome-pill.float-slow:hover,
 .welcome-pill.float-medium:hover {
     animation-play-state: paused;
+}
+
+/* ── Retention widgets: Rip-Off Radar, Microclimate, Packing, Passport ── */
+
+.retention-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    gap: 1rem;
+    margin: 1.25rem 0 0;
+}
+
+.retention-card {
+    padding: 1.1rem 1.15rem;
+}
+
+.retention-card__header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.retention-card__title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.retention-card__sub {
+    font-size: 0.78rem;
+    color: var(--text-muted, #94a3b8);
+    margin: 0.25rem 0 0;
+}
+
+.fair-price-index-wrap,
+.activity-score-wrap {
+    text-align: center;
+    min-width: 4.5rem;
+}
+
+.fair-price-index,
+.activity-score {
+    display: block;
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.fair-price-index--good { color: #34d399; }
+.fair-price-index--fair { color: #fbbf24; }
+.fair-price-index--warn { color: #f87171; }
+
+.fair-price-index__label,
+.activity-score__label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted, #94a3b8);
+}
+
+.fair-price-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.fair-price-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.4rem;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.fair-price-row--bargain .fair-price-row__delta { color: #34d399; }
+.fair-price-row--ripoff .fair-price-row__delta,
+.fair-price-row--premium .fair-price-row__delta { color: #f87171; }
+
+.tipping-scam-alert {
+    margin-top: 0.85rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.5rem;
+    background: rgba(251, 191, 36, 0.08);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    font-size: 0.8rem;
+}
+
+.tipping-scam-alert__list {
+    margin: 0.4rem 0 0;
+    padding-left: 1.1rem;
+}
+
+.activity-score-bar {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.activity-score-bar__fill {
+    height: 100%;
+    width: 0%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #6366f1, #34d399);
+    transition: width 0.6s ease;
+}
+
+.microclimate-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    font-size: 0.78rem;
+    color: var(--text-muted, #94a3b8);
+    margin-bottom: 0.5rem;
+}
+
+.best-window-slot {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #a5b4fc;
+    margin: 0 0 0.5rem;
+}
+
+.microclimate-alert {
+    font-size: 0.78rem;
+    margin: 0.35rem 0;
+    padding: 0.4rem 0.55rem;
+    border-radius: 0.35rem;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.microclimate-alert--clear { color: #94a3b8; }
+
+.packing-duration-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.72rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.amount-input--compact {
+    width: 4.5rem;
+    padding: 0.35rem 0.5rem;
+}
+
+.packing-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted, #94a3b8);
+    margin: 0 0 0.65rem;
+}
+
+.packing-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.packing-columns h4 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 0.35rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.packing-list {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+.passport-status {
+    font-size: 0.78rem;
+    padding: 0.4rem 0.55rem;
+    border-radius: 0.35rem;
+    margin-bottom: 0.65rem;
+}
+
+.passport-status--online { background: rgba(52, 211, 153, 0.1); color: #6ee7b7; }
+.passport-status--offline { background: rgba(251, 191, 36, 0.1); color: #fcd34d; }
+
+.passport-emergency {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    font-size: 0.82rem;
+    margin-bottom: 0.65rem;
+}
+
+.passport-phrases {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+}
+
+.passport-phrase {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.passport-archive-list {
+    font-size: 0.78rem;
+}
+
+.passport-archive-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.passport-empty {
+    color: var(--text-muted, #94a3b8);
+    margin: 0;
+}
+
+.btn-secondary--compact {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75rem;
 }

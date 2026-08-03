@@ -149,20 +149,16 @@ function getMergedFallbackRates() {
 }
 
 async function fxApiFetch(url, meta = {}) {
-    const { silent = true, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS } = meta;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const { silent = true } = meta;
     try {
         if (typeof navigator !== 'undefined' && !navigator.onLine) return null;
-        const res = await fetch(url, { signal: controller.signal });
-        clearTimeout(timer);
+        const res = await fetch(url);
         if (res.status === 404 || res.status === 400 || res.status === 422) return null;
         if (!res.ok) return null;
         return res;
     } catch (err) {
-        clearTimeout(timer);
         if (!silent) {
-            console.warn('[FX] Fetch failed:', err?.message || err);
+            console.warn('[FX] History fetch failed:', err?.message || err);
         }
         return null;
     }
