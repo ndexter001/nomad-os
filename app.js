@@ -289,12 +289,156 @@ const runwayProgressFill = document.getElementById('runway-progress-fill');
 const runwayProgressLabel = document.getElementById('runway-progress-label');
 const financeOsGrid = document.getElementById('finance-os-grid');
 
-/** Shared UI state — synced with CityContext */
-const AppState = {
-    activeCity: null,
-    burnZone: 'moderate',
-    heroImageSeed: 'nomad-world'
+/** Shared UI state — synced with CityContext, converter, and runway controls */
+const APP_STATE_DEFAULTS = {
+    activeCity: 'Bangkok',
+    countryName: 'Thailand',
+    countryCode: 'TH',
+    burnZone: 'cheap',
+    heroImageSeed: 'nomad-world',
+    homeCurrency: 'USD',
+    targetCurrency: 'THB',
+    exchangeRate: 36.5,
+    pppMultiplier: 0.65,
+    travelStyle: 'nomad',
+    totalBudget: 5000,
+    dailyOverheadUSD: 35
 };
+
+const _appStateData = { ...APP_STATE_DEFAULTS };
+
+const AppState = {
+    getCalculatedBurn(roomRateUSD) {
+        const styleMult = this.travelStyle === 'backpacker' ? 0.5 : (this.travelStyle === 'luxury' ? 2.5 : 1.0);
+        const overhead = (this.dailyOverheadUSD || APP_STATE_DEFAULTS.dailyOverheadUSD)
+            * (this.pppMultiplier || APP_STATE_DEFAULTS.pppMultiplier)
+            * styleMult;
+        return (Number(roomRateUSD) || 0) + overhead;
+    }
+};
+
+function _appStateStr(val, fallback) {
+    return val != null && val !== '' ? val : fallback;
+}
+
+function _appStateNum(val, fallback) {
+    const n = Number(val);
+    return Number.isFinite(n) ? n : fallback;
+}
+
+Object.defineProperties(AppState, {
+    activeCity: {
+        get: () => _appStateStr(_appStateData.activeCity, APP_STATE_DEFAULTS.activeCity),
+        set: (v) => { _appStateData.activeCity = _appStateStr(v, APP_STATE_DEFAULTS.activeCity); },
+        enumerable: true
+    },
+    countryName: {
+        get: () => _appStateStr(_appStateData.countryName, APP_STATE_DEFAULTS.countryName),
+        set: (v) => { _appStateData.countryName = _appStateStr(v, APP_STATE_DEFAULTS.countryName); },
+        enumerable: true
+    },
+    countryCode: {
+        get: () => _appStateStr(_appStateData.countryCode, APP_STATE_DEFAULTS.countryCode),
+        set: (v) => { _appStateData.countryCode = _appStateStr(v, APP_STATE_DEFAULTS.countryCode); },
+        enumerable: true
+    },
+    burnZone: {
+        get: () => _appStateStr(_appStateData.burnZone, APP_STATE_DEFAULTS.burnZone),
+        set: (v) => {
+            _appStateData.burnZone = _appStateStr(v, APP_STATE_DEFAULTS.burnZone);
+            applyAmbientGlowClass(_appStateData.burnZone);
+        },
+        enumerable: true
+    },
+    heroImageSeed: {
+        get: () => _appStateStr(_appStateData.heroImageSeed, APP_STATE_DEFAULTS.heroImageSeed),
+        set: (v) => { _appStateData.heroImageSeed = _appStateStr(v, APP_STATE_DEFAULTS.heroImageSeed); },
+        enumerable: true
+    },
+    homeCurrency: {
+        get: () => fromCurrency?.value || _appStateStr(_appStateData.homeCurrency, APP_STATE_DEFAULTS.homeCurrency),
+        set: (v) => {
+            const code = _appStateStr(v, APP_STATE_DEFAULTS.homeCurrency);
+            _appStateData.homeCurrency = code;
+            if (fromCurrency && [...fromCurrency.options].some((o) => o.value === code)) {
+                fromCurrency.value = code;
+                if (typeof updateConversion === 'function') updateConversion();
+            }
+        },
+        enumerable: true
+    },
+    targetCurrency: {
+        get: () => toCurrency?.value || _appStateStr(_appStateData.targetCurrency, APP_STATE_DEFAULTS.targetCurrency),
+        set: (v) => {
+            const code = _appStateStr(v, APP_STATE_DEFAULTS.targetCurrency);
+            _appStateData.targetCurrency = code;
+            if (toCurrency && [...toCurrency.options].some((o) => o.value === code)) {
+                toCurrency.value = code;
+                if (typeof updateConversion === 'function') updateConversion();
+            }
+        },
+        enumerable: true
+    },
+    exchangeRate: {
+        get: () => {
+            const home = AppState.homeCurrency;
+            const dest = AppState.targetCurrency;
+            try {
+                if (typeof converter !== 'undefined' && home && dest) {
+                    const rate = converter.getRate(home, dest);
+                    if (Number.isFinite(rate) && rate > 0) return rate;
+                }
+            } catch { /* use stored fallback */ }
+            return _appStateNum(_appStateData.exchangeRate, APP_STATE_DEFAULTS.exchangeRate);
+        },
+        set: (v) => { _appStateData.exchangeRate = _appStateNum(v, APP_STATE_DEFAULTS.exchangeRate); },
+        enumerable: true
+    },
+    pppMultiplier: {
+        get: () => {
+            const dest = AppState.targetCurrency;
+            const profile = typeof getPppProfile === 'function' ? getPppProfile(dest) : null;
+            return profile?.multiplier ?? _appStateNum(_appStateData.pppMultiplier, APP_STATE_DEFAULTS.pppMultiplier);
+        },
+        set: (v) => { _appStateData.pppMultiplier = _appStateNum(v, APP_STATE_DEFAULTS.pppMultiplier); },
+        enumerable: true
+    },
+    travelStyle: {
+        get: () => {
+            const tier = typeof getTravelStyleTier === 'function' ? getTravelStyleTier() : _appStateData.travelStyle;
+            return _appStateStr(tier, APP_STATE_DEFAULTS.travelStyle);
+        },
+        set: (v) => {
+            const tier = _appStateStr(v, APP_STATE_DEFAULTS.travelStyle);
+            _appStateData.travelStyle = tier;
+            if (typeof setTravelStyleTier === 'function') setTravelStyleTier(tier);
+            document.querySelectorAll('.travel-style-pill[data-tier]').forEach((p) => {
+                p.classList.toggle('travel-style-pill--active', p.dataset.tier === tier);
+            });
+            if (typeof updateConversion === 'function') updateConversion();
+        },
+        enumerable: true
+    },
+    totalBudget: {
+        get: () => {
+            const parsed = parseFloat(runwayBudgetInput?.value);
+            if (Number.isFinite(parsed) && parsed > 0) return parsed;
+            return _appStateNum(_appStateData.totalBudget, APP_STATE_DEFAULTS.totalBudget);
+        },
+        set: (v) => {
+            const budget = _appStateNum(v, APP_STATE_DEFAULTS.totalBudget);
+            _appStateData.totalBudget = budget;
+            if (runwayBudgetInput) runwayBudgetInput.value = String(budget);
+            if (typeof updateNomadRunway === 'function') updateNomadRunway();
+        },
+        enumerable: true
+    },
+    dailyOverheadUSD: {
+        get: () => _appStateNum(_appStateData.dailyOverheadUSD, APP_STATE_DEFAULTS.dailyOverheadUSD),
+        set: (v) => { _appStateData.dailyOverheadUSD = _appStateNum(v, APP_STATE_DEFAULTS.dailyOverheadUSD); },
+        enumerable: true
+    }
+});
 
 const HERO_HOTSPOTS = {
     tokyo: {
@@ -470,7 +614,7 @@ function populateSelects(filter = '') {
     if (toVal && [...toCurrency.options].some((o) => o.value === toVal)) {
         toCurrency.value = toVal;
     } else if (!toCurrency.value) {
-        toCurrency.value = 'NOK';
+        toCurrency.value = 'THB';
     }
 }
 
@@ -610,6 +754,88 @@ function buildInsightText(amount, from, to, metrics) {
     return t('insightWorse')(absPct, toName, fromName, amt, real);
 }
 
+function burnZoneCssClass(zone) {
+    const map = { cheap: 'low', low: 'low', moderate: 'moderate', expensive: 'high', high: 'high' };
+    return map[zone] || 'moderate';
+}
+
+function mapBurnZoneFromRatio(zone) {
+    const map = { low: 'cheap', moderate: 'moderate', high: 'expensive' };
+    return map[zone] || zone || APP_STATE_DEFAULTS.burnZone;
+}
+
+function applyAmbientGlowClass(zone) {
+    const cls = `ambient-glow--${burnZoneCssClass(zone)}`;
+    for (const el of [ambientGlowA, ambientGlowB]) {
+        if (!el) continue;
+        el.classList.remove('ambient-glow--low', 'ambient-glow--moderate', 'ambient-glow--high');
+        el.classList.add(cls);
+    }
+}
+
+function syncAppStateFromUI(cityOverride) {
+    const city = cityOverride ?? (typeof CityContext !== 'undefined' ? CityContext.get() : null);
+    const home = fromCurrency?.value || APP_STATE_DEFAULTS.homeCurrency;
+    const dest = toCurrency?.value || APP_STATE_DEFAULTS.targetCurrency;
+
+    _appStateData.activeCity = city?.name || city?.label || _appStateData.activeCity || APP_STATE_DEFAULTS.activeCity;
+    _appStateData.countryName = city?.country || _appStateData.countryName || APP_STATE_DEFAULTS.countryName;
+    _appStateData.countryCode = city?.country_code || _appStateData.countryCode || APP_STATE_DEFAULTS.countryCode;
+    _appStateData.homeCurrency = home;
+    _appStateData.targetCurrency = dest;
+    _appStateData.heroImageSeed = heroImageSeed(city) || APP_STATE_DEFAULTS.heroImageSeed;
+    _appStateData.travelStyle = typeof getTravelStyleTier === 'function'
+        ? getTravelStyleTier()
+        : (_appStateData.travelStyle || APP_STATE_DEFAULTS.travelStyle);
+
+    const funds = parseFloat(runwayBudgetInput?.value);
+    if (Number.isFinite(funds) && funds > 0) _appStateData.totalBudget = funds;
+
+    try {
+        if (typeof converter !== 'undefined' && home && dest) {
+            const rate = converter.getRate(home, dest);
+            if (Number.isFinite(rate) && rate > 0) _appStateData.exchangeRate = rate;
+        }
+    } catch { /* keep last known rate */ }
+
+    const profile = typeof getPppProfile === 'function' ? getPppProfile(dest) : null;
+    if (profile?.multiplier != null) _appStateData.pppMultiplier = profile.multiplier;
+
+    _appStateData.burnZone = mapBurnZoneFromRatio(getBurnZone(home, dest));
+}
+
+function ensureAppStateDefaults() {
+    if (fromCurrency && !fromCurrency.value) fromCurrency.value = APP_STATE_DEFAULTS.homeCurrency;
+    if (toCurrency && !toCurrency.value) toCurrency.value = APP_STATE_DEFAULTS.targetCurrency;
+
+    if (typeof CityContext !== 'undefined' && !CityContext.get()) {
+        const bangkok = HERO_HOTSPOTS.bangkok;
+        CityContext.set(bangkok);
+        if (toCurrency) toCurrency.value = bangkok.currency;
+        const input = $('city-search');
+        if (input) input.value = bangkok.label || bangkok.name;
+        _appStateData.activeCity = bangkok.name;
+        _appStateData.countryName = bangkok.country;
+        _appStateData.countryCode = bangkok.country_code;
+    }
+
+    if (runwayBudgetInput && (!runwayBudgetInput.value || parseFloat(runwayBudgetInput.value) <= 0)) {
+        runwayBudgetInput.value = String(APP_STATE_DEFAULTS.totalBudget);
+    }
+
+    if (typeof setTravelStyleTier === 'function') {
+        setTravelStyleTier(_appStateData.travelStyle || APP_STATE_DEFAULTS.travelStyle);
+    }
+
+    syncAppStateFromUI();
+    applyAmbientGlowClass(_appStateData.burnZone);
+}
+
+AppState.reset = function resetAppState() {
+    Object.assign(_appStateData, APP_STATE_DEFAULTS);
+    ensureAppStateDefaults();
+};
+
 function getBurnZone(homeCode, destCode) {
     const home = getPppProfile(homeCode);
     const dest = getPppProfile(destCode);
@@ -621,13 +847,8 @@ function getBurnZone(homeCode, destCode) {
 }
 
 function updateAmbientGlow(zone) {
-    AppState.burnZone = zone || 'moderate';
-    const cls = `ambient-glow--${AppState.burnZone}`;
-    for (const el of [ambientGlowA, ambientGlowB]) {
-        if (!el) continue;
-        el.classList.remove('ambient-glow--low', 'ambient-glow--moderate', 'ambient-glow--high');
-        el.classList.add(cls);
-    }
+    _appStateData.burnZone = mapBurnZoneFromRatio(zone || _appStateData.burnZone);
+    applyAmbientGlowClass(_appStateData.burnZone);
 }
 
 function heroImageSeed(city) {
@@ -733,7 +954,7 @@ function updateHeroDestinationCard() {
     const flag = typeof countryFlagEmoji === 'function' ? countryFlagEmoji(cc) : '';
     const greeting = getCountryGreeting(cc);
 
-    AppState.activeCity = city?.name || city?.label || null;
+    syncAppStateFromUI(city);
     updateWelcomeEmptyState(city);
 
     const zone = getBurnZone(homeCode, destCode);
@@ -795,7 +1016,9 @@ function initWelcomeHotspots() {
 }
 
 function initTravelStyleSwitcher() {
+    const activeTier = AppState.travelStyle;
     document.querySelectorAll('.travel-style-pill[data-tier]').forEach((pill) => {
+        pill.classList.toggle('travel-style-pill--active', pill.dataset.tier === activeTier);
         pill.addEventListener('click', () => {
             const tier = pill.dataset.tier;
             if (!tier || typeof setTravelStyleTier !== 'function') return;
@@ -966,7 +1189,7 @@ function initNomadRunway() {
     if (!runwayBudgetCurrency || !fromCurrency) return;
     const options = buildSelectOptions();
     runwayBudgetCurrency.innerHTML = options;
-    runwayBudgetCurrency.value = fromCurrency.value || 'NOK';
+    runwayBudgetCurrency.value = fromCurrency.value || APP_STATE_DEFAULTS.homeCurrency;
 
     runwayBudgetInput?.addEventListener('input', updateNomadRunway);
     runwayBudgetCurrency?.addEventListener('change', updateNomadRunway);
@@ -1331,6 +1554,7 @@ function selectDestinationCity(city) {
             applyCityToCurrencySelect(city, toCurrency);
         }
         updateSmartConverter();
+        syncAppStateFromUI(city);
         if (typeof Toast !== 'undefined' && Toast.info) {
             const msg = typeof t === 'function'
                 ? t('toastCitySynced')(city.name, city.currency || toCurrency.value)
@@ -1505,6 +1729,7 @@ function updateConversion() {
     if (typeof updateVatRefundCalculator === 'function') updateVatRefundCalculator();
     if (typeof updateSurvival === 'function') updateSurvival();
     if (typeof refreshVaultRunway === 'function') refreshVaultRunway();
+    syncAppStateFromUI();
 }
 
 function formatRate(value, code) {
@@ -1694,6 +1919,7 @@ function initDashboardPage() {
     initLanguagePicker();
     applyStaticTranslations();
     populateSelects();
+    ensureAppStateDefaults();
     updateTimestamps();
     updateConversion();
     fetchLiveRates();
@@ -1767,6 +1993,9 @@ window.NomadOSApp = {
     selectDestinationCity,
     fetchCitySuggestions,
     AppState,
+    APP_STATE_DEFAULTS,
+    syncAppStateFromUI,
+    ensureAppStateDefaults,
     updateHeroDestinationCard,
     animateValue,
     animateAmountEl,
