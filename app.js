@@ -289,15 +289,79 @@ const runwayProgressFill = document.getElementById('runway-progress-fill');
 const runwayProgressLabel = document.getElementById('runway-progress-label');
 const financeOsGrid = document.getElementById('finance-os-grid');
 
+const APP_STATE_CITY_KEY = 'nomados_last_city';
+
+function slugCitySeed(name) {
+    const raw = name || 'nomad-world';
+    return String(raw).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'nomad-world';
+}
+
+function loadSavedCityState() {
+    try {
+        const raw = localStorage.getItem(APP_STATE_CITY_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && (parsed.name || parsed.label)) return parsed;
+        }
+        const legacy = localStorage.getItem('nomad-os-selected-city');
+        if (legacy) {
+            const parsed = JSON.parse(legacy);
+            if (parsed && (parsed.name || parsed.label)) return parsed;
+        }
+    } catch { /* ignore corrupt storage */ }
+    return null;
+}
+
+function savedCityToContextCity(saved) {
+    if (!saved?.name && !saved?.label) return null;
+    const name = saved.name || String(saved.label).split(',')[0].trim();
+    const countryCode = saved.countryCode || saved.country_code || '';
+    return {
+        id: saved.id || `${saved.lat ?? name}-${countryCode}`,
+        name,
+        country: saved.country || '',
+        country_code: countryCode,
+        lat: saved.lat,
+        lon: saved.lon,
+        currency: saved.currency || null,
+        label: saved.label || (saved.country ? `${name}, ${saved.country}` : name)
+    };
+}
+
+function persistAppStateCity(city) {
+    try {
+        if (!city?.name && !city?.label) {
+            localStorage.removeItem(APP_STATE_CITY_KEY);
+            return;
+        }
+        const payload = {
+            name: city.name || city.label,
+            country: city.country || AppState.countryName,
+            countryCode: city.country_code || city.countryCode || AppState.countryCode,
+            country_code: city.country_code || city.countryCode || AppState.countryCode,
+            burnZone: AppState.burnZone,
+            seed: AppState.heroImageSeed || slugCitySeed(city.name || city.label),
+            currency: city.currency || AppState.targetCurrency,
+            label: city.label || (city.country ? `${city.name}, ${city.country}` : city.name),
+            lat: city.lat,
+            lon: city.lon,
+            id: city.id
+        };
+        localStorage.setItem(APP_STATE_CITY_KEY, JSON.stringify(payload));
+    } catch { /* quota */ }
+}
+
+const savedCity = loadSavedCityState();
+
 /** Shared UI state — synced with CityContext, converter, and runway controls */
 const APP_STATE_DEFAULTS = {
-    activeCity: 'Tokyo',
-    countryName: 'Japan',
-    countryCode: 'JP',
-    burnZone: 'moderate',
-    heroImageSeed: 'nomad-world',
+    activeCity: savedCity?.name || 'Tokyo',
+    countryName: savedCity?.country || 'Japan',
+    countryCode: savedCity?.countryCode || savedCity?.country_code || 'JP',
+    burnZone: savedCity?.burnZone || 'moderate',
+    heroImageSeed: savedCity?.seed || savedCity?.heroImageSeed || slugCitySeed(savedCity?.name) || 'nomad-world',
     homeCurrency: 'USD',
-    targetCurrency: 'JPY',
+    targetCurrency: savedCity?.currency || 'JPY',
     exchangeRate: 155.20,
     pppMultiplier: 0.65,
     travelStyle: 'nomad', // 'backpacker' | 'nomad' | 'luxury'
@@ -565,6 +629,7 @@ function refreshCityContextForLanguage() {
 
     try {
         localStorage.setItem('nomad-os-selected-city', JSON.stringify(city));
+        persistAppStateCity(city);
     } catch { /* quota */ }
 }
 
@@ -849,14 +914,39 @@ function applyCityToAppState(city) {
     if (city.currency) AppState.targetCurrency = city.currency;
     AppState.heroImageSeed = heroImageSeed(city);
     applyAppStatePppMultiplier(city.currency);
+    persistAppStateCity(city);
     renderStayCalculations();
+}
+
+function restoreSavedCityOnStartup() {
+    if (typeof CityContext === 'undefined') return null;
+
+    let city = CityContext.get();
+    if (!city) {
+        city = savedCityToContextCity(loadSavedCityState());
+        if (city) CityContext.set(city);
+    }
+    return city;
 }
 
 function ensureAppStateDefaults() {
     if (fromCurrency && !fromCurrency.value) fromCurrency.value = APP_STATE_DEFAULTS.homeCurrency;
     if (toCurrency && !toCurrency.value) toCurrency.value = APP_STATE_DEFAULTS.targetCurrency;
 
-    if (typeof CityContext !== 'undefined' && !CityContext.get()) {
+    const city = restoreSavedCityOnStartup()
+        ?? (typeof CityContext !== 'undefined' ? CityContext.get() : null);
+
+    if (city) {
+        if (toCurrency && city.currency) toCurrency.value = city.currency;
+        const input = $('city-search');
+        if (input && !input.value) input.value = city.label || city.name;
+        _appStateData.activeCity = city.name || city.label || _appStateData.activeCity;
+        _appStateData.countryName = city.country || _appStateData.countryName;
+        _appStateData.countryCode = city.country_code || _appStateData.countryCode;
+        if (city.currency) _appStateData.targetCurrency = city.currency;
+        _appStateData.heroImageSeed = slugCitySeed(city.name || city.label);
+        persistAppStateCity(city);
+    } else if (typeof CityContext !== 'undefined') {
         const tokyo = HERO_HOTSPOTS.tokyo;
         CityContext.set(tokyo);
         if (toCurrency) toCurrency.value = tokyo.currency;
@@ -865,6 +955,7 @@ function ensureAppStateDefaults() {
         _appStateData.activeCity = tokyo.name;
         _appStateData.countryName = tokyo.country;
         _appStateData.countryCode = tokyo.country_code;
+        persistAppStateCity(tokyo);
     }
 
     if (runwayBudgetInput && (!runwayBudgetInput.value || parseFloat(runwayBudgetInput.value) <= 0)) {
@@ -1993,6 +2084,7 @@ function initDashboardPage() {
                 updateHeroDestinationCard();
                 return;
             }
+            applyCityToAppState(city);
             const input = $('city-search');
             if (input && document.activeElement !== input) {
                 input.value = city.label || city.name;
@@ -2049,6 +2141,8 @@ window.NomadOSApp = {
     ensureAppStateDefaults,
     renderStayCalculations,
     applyCityToAppState,
+    persistAppStateCity,
+    loadSavedCityState,
     applyAppStateFxRates,
     applyAppStatePppMultiplier,
     updateHeroDestinationCard,
