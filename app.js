@@ -291,16 +291,16 @@ const financeOsGrid = document.getElementById('finance-os-grid');
 
 /** Shared UI state — synced with CityContext, converter, and runway controls */
 const APP_STATE_DEFAULTS = {
-    activeCity: 'Bangkok',
-    countryName: 'Thailand',
-    countryCode: 'TH',
-    burnZone: 'cheap',
+    activeCity: 'Tokyo',
+    countryName: 'Japan',
+    countryCode: 'JP',
+    burnZone: 'moderate',
     heroImageSeed: 'nomad-world',
     homeCurrency: 'USD',
-    targetCurrency: 'THB',
-    exchangeRate: 36.5,
+    targetCurrency: 'JPY',
+    exchangeRate: 155.20,
     pppMultiplier: 0.65,
-    travelStyle: 'nomad',
+    travelStyle: 'nomad', // 'backpacker' | 'nomad' | 'luxury'
     totalBudget: 5000,
     dailyOverheadUSD: 35
 };
@@ -362,7 +362,9 @@ Object.defineProperties(AppState, {
             _appStateData.homeCurrency = code;
             if (fromCurrency && [...fromCurrency.options].some((o) => o.value === code)) {
                 fromCurrency.value = code;
+                applyAppStateFxRates();
                 if (typeof updateConversion === 'function') updateConversion();
+                renderStayCalculations();
             }
         },
         enumerable: true
@@ -374,7 +376,10 @@ Object.defineProperties(AppState, {
             _appStateData.targetCurrency = code;
             if (toCurrency && [...toCurrency.options].some((o) => o.value === code)) {
                 toCurrency.value = code;
+                applyAppStateFxRates();
+                applyAppStatePppMultiplier(code);
                 if (typeof updateConversion === 'function') updateConversion();
+                renderStayCalculations();
             }
         },
         enumerable: true
@@ -416,6 +421,7 @@ Object.defineProperties(AppState, {
                 p.classList.toggle('travel-style-pill--active', p.dataset.tier === tier);
             });
             if (typeof updateConversion === 'function') updateConversion();
+            renderStayCalculations();
         },
         enumerable: true
     },
@@ -614,7 +620,7 @@ function populateSelects(filter = '') {
     if (toVal && [...toCurrency.options].some((o) => o.value === toVal)) {
         toCurrency.value = toVal;
     } else if (!toCurrency.value) {
-        toCurrency.value = 'THB';
+        toCurrency.value = 'JPY';
     }
 }
 
@@ -804,19 +810,61 @@ function syncAppStateFromUI(cityOverride) {
     _appStateData.burnZone = mapBurnZoneFromRatio(getBurnZone(home, dest));
 }
 
+function applyAppStateFxRates() {
+    const home = fromCurrency?.value || _appStateData.homeCurrency || APP_STATE_DEFAULTS.homeCurrency;
+    const dest = toCurrency?.value || _appStateData.targetCurrency || APP_STATE_DEFAULTS.targetCurrency;
+    try {
+        if (typeof converter !== 'undefined' && home && dest) {
+            const rate = converter.getRate(home, dest);
+            if (Number.isFinite(rate) && rate > 0) {
+                _appStateData.exchangeRate = rate;
+                return;
+            }
+        }
+    } catch { /* use stored fallback */ }
+    if (!_appStateData.exchangeRate) {
+        _appStateData.exchangeRate = APP_STATE_DEFAULTS.exchangeRate;
+    }
+}
+
+function applyAppStatePppMultiplier(destCode) {
+    const dest = destCode || toCurrency?.value || _appStateData.targetCurrency || APP_STATE_DEFAULTS.targetCurrency;
+    const profile = typeof getPppProfile === 'function' ? getPppProfile(dest) : null;
+    if (profile?.multiplier != null) {
+        _appStateData.pppMultiplier = profile.multiplier;
+    }
+}
+
+/** Re-render runway / stay-cost widgets when AppState drives a tier or destination change */
+function renderStayCalculations() {
+    updateNomadRunway();
+    if (typeof refreshVaultRunway === 'function') refreshVaultRunway();
+}
+
+function applyCityToAppState(city) {
+    if (!city) return;
+    AppState.activeCity = city.name || city.label || APP_STATE_DEFAULTS.activeCity;
+    AppState.countryName = city.country || AppState.countryName;
+    AppState.countryCode = city.country_code || AppState.countryCode;
+    if (city.currency) AppState.targetCurrency = city.currency;
+    AppState.heroImageSeed = heroImageSeed(city);
+    applyAppStatePppMultiplier(city.currency);
+    renderStayCalculations();
+}
+
 function ensureAppStateDefaults() {
     if (fromCurrency && !fromCurrency.value) fromCurrency.value = APP_STATE_DEFAULTS.homeCurrency;
     if (toCurrency && !toCurrency.value) toCurrency.value = APP_STATE_DEFAULTS.targetCurrency;
 
     if (typeof CityContext !== 'undefined' && !CityContext.get()) {
-        const bangkok = HERO_HOTSPOTS.bangkok;
-        CityContext.set(bangkok);
-        if (toCurrency) toCurrency.value = bangkok.currency;
+        const tokyo = HERO_HOTSPOTS.tokyo;
+        CityContext.set(tokyo);
+        if (toCurrency) toCurrency.value = tokyo.currency;
         const input = $('city-search');
-        if (input) input.value = bangkok.label || bangkok.name;
-        _appStateData.activeCity = bangkok.name;
-        _appStateData.countryName = bangkok.country;
-        _appStateData.countryCode = bangkok.country_code;
+        if (input) input.value = tokyo.label || tokyo.name;
+        _appStateData.activeCity = tokyo.name;
+        _appStateData.countryName = tokyo.country;
+        _appStateData.countryCode = tokyo.country_code;
     }
 
     if (runwayBudgetInput && (!runwayBudgetInput.value || parseFloat(runwayBudgetInput.value) <= 0)) {
@@ -1016,18 +1064,12 @@ function initWelcomeHotspots() {
 }
 
 function initTravelStyleSwitcher() {
-    const activeTier = AppState.travelStyle;
     document.querySelectorAll('.travel-style-pill[data-tier]').forEach((pill) => {
-        pill.classList.toggle('travel-style-pill--active', pill.dataset.tier === activeTier);
+        pill.classList.toggle('travel-style-pill--active', pill.dataset.tier === AppState.travelStyle);
         pill.addEventListener('click', () => {
             const tier = pill.dataset.tier;
-            if (!tier || typeof setTravelStyleTier !== 'function') return;
-            setTravelStyleTier(tier);
-            document.querySelectorAll('.travel-style-pill[data-tier]').forEach((p) => {
-                p.classList.toggle('travel-style-pill--active', p.dataset.tier === tier);
-            });
-            updateConversion();
-            if (typeof refreshVaultRunway === 'function') refreshVaultRunway();
+            if (!tier) return;
+            AppState.travelStyle = tier;
         });
     });
 }
@@ -1191,7 +1233,10 @@ function initNomadRunway() {
     runwayBudgetCurrency.innerHTML = options;
     runwayBudgetCurrency.value = fromCurrency.value || APP_STATE_DEFAULTS.homeCurrency;
 
-    runwayBudgetInput?.addEventListener('input', updateNomadRunway);
+    runwayBudgetInput?.addEventListener('input', () => {
+        const val = parseFloat(runwayBudgetInput.value);
+        if (Number.isFinite(val) && val >= 0) AppState.totalBudget = val;
+    });
     runwayBudgetCurrency?.addEventListener('change', updateNomadRunway);
 }
 
@@ -1553,8 +1598,8 @@ function selectDestinationCity(city) {
         if (city.currency) {
             applyCityToCurrencySelect(city, toCurrency);
         }
+        applyCityToAppState(city);
         updateSmartConverter();
-        syncAppStateFromUI(city);
         if (typeof Toast !== 'undefined' && Toast.info) {
             const msg = typeof t === 'function'
                 ? t('toastCitySynced')(city.name, city.currency || toCurrency.value)
@@ -1629,6 +1674,8 @@ function updatePurchasingPower() {
 
     const metrics = calcPppMetrics(amount, from, to);
     if (!metrics) return;
+
+    applyAppStatePppMultiplier(to);
 
     const { nominal, realLifestyle, pppLocal, powerPct, units, toProfile, hasMarket } = metrics;
     const gap = formatPowerGap(powerPct);
@@ -1808,11 +1855,10 @@ function renderStats() {
 
     statsList.querySelectorAll('.stat-row').forEach((row) => {
         row.addEventListener('click', () => {
-            if (fromCurrency) fromCurrency.value = 'USD';
-            if (toCurrency) toCurrency.value = row.dataset.code;
+            AppState.homeCurrency = 'USD';
+            AppState.targetCurrency = row.dataset.code;
             if (currencySearch) currencySearch.value = '';
             populateSelects();
-            updateConversion();
             document.querySelector('.converter-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
     });
@@ -1836,6 +1882,7 @@ async function fetchLiveRates() {
         }
 
         converter.updateRates(liveRates);
+        applyAppStateFxRates();
         updateConversion();
         renderStats();
         flashLiveUpdate();
@@ -1860,6 +1907,7 @@ async function fetchLiveRates() {
             if (code !== 'USD' && merged[code] != null) liveRates[code] = merged[code];
         }
         converter.updateRates(liveRates);
+        applyAppStateFxRates();
         updateConversion();
         renderStats();
         setBadgeState('error', t('badgeOffline'));
@@ -1872,10 +1920,9 @@ async function fetchLiveRates() {
 
 function swapCurrencies() {
     if (!fromCurrency || !toCurrency) return;
-    const tempCurrency = fromCurrency.value;
-    fromCurrency.value = toCurrency.value;
-    toCurrency.value = tempCurrency;
-    updateConversion();
+    const prevHome = AppState.homeCurrency;
+    AppState.homeCurrency = AppState.targetCurrency;
+    AppState.targetCurrency = prevHome;
 }
 
 function onLanguageChange() {
@@ -1965,8 +2012,12 @@ function initDashboardPage() {
         populateSelects(currencySearch?.value || '');
     });
     bind(fromAmount, 'input', updateConversion);
-    bind(fromCurrency, 'change', updateConversion);
-    bind(toCurrency, 'change', updateConversion);
+    bind(fromCurrency, 'change', () => {
+        AppState.homeCurrency = fromCurrency.value;
+    });
+    bind(toCurrency, 'change', () => {
+        AppState.targetCurrency = toCurrency.value;
+    });
     bind(swapBtn, 'click', swapCurrencies);
 
     document.querySelectorAll('.quick-btn').forEach((btn) => {
@@ -1996,6 +2047,10 @@ window.NomadOSApp = {
     APP_STATE_DEFAULTS,
     syncAppStateFromUI,
     ensureAppStateDefaults,
+    renderStayCalculations,
+    applyCityToAppState,
+    applyAppStateFxRates,
+    applyAppStatePppMultiplier,
     updateHeroDestinationCard,
     animateValue,
     animateAmountEl,
