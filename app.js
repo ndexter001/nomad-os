@@ -1775,3 +1775,8 @@ window.NomadOSApp = {
     animateBarWidth,
     getLastAnimatedValue
 };
+
+// Expose for browser console diagnostics & testing:
+if (typeof window !== 'undefined') {
+    window.AppState = AppState;
+}
