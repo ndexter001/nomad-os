@@ -40,13 +40,21 @@ const layerState = {
 
 const tempCache = new Map();
 
+function $(id) {
+    return document.getElementById(id);
+}
+
+function bind(el, type, handler, options) {
+    if (el) el.addEventListener(type, handler, options);
+}
+
 function buildMapCurrencyOptions() {
     if (typeof CURRENCIES === 'undefined') return '';
     return CURRENCIES.map((c) => `<option value="${c.code}">${c.code} — ${c.name}</option>`).join('');
 }
 
 function getMapHomeCode() {
-    return document.getElementById('map-home-currency')?.value || 'NOK';
+    return $('map-home-currency')?.value || 'NOK';
 }
 
 function mapLoadingHtml() {
@@ -209,6 +217,7 @@ async function onMapLocation(lat, lon) {
 }
 
 function clearLayerGroup(key) {
+    if (!mapInstance) return;
     if (mapLayers[key]) {
         mapInstance.removeLayer(mapLayers[key]);
         mapLayers[key] = null;
@@ -216,6 +225,7 @@ function clearLayerGroup(key) {
 }
 
 function buildPpiLayer(homeCode) {
+    if (!mapInstance) return;
     clearLayerGroup('ppi');
     if (!layerState.ppi) return;
 
@@ -239,6 +249,7 @@ function buildPpiLayer(homeCode) {
 }
 
 async function buildTempLayer() {
+    if (!mapInstance) return;
     clearLayerGroup('temp');
     if (!layerState.temp) return;
 
@@ -273,6 +284,7 @@ async function buildTempLayer() {
 }
 
 function buildNomadLayer(homeCode) {
+    if (!mapInstance) return;
     clearLayerGroup('nomad');
     if (!layerState.nomad) return;
 
@@ -326,9 +338,9 @@ function toggleLayer(key, btn) {
 }
 
 function initMapPage() {
-    const mapEl = document.getElementById('col-map');
+    const mapEl = $('col-map');
     if (!mapEl || typeof L === 'undefined') {
-        document.getElementById('map-error')?.removeAttribute('hidden');
+        $('map-error')?.removeAttribute('hidden');
         return;
     }
 
@@ -348,11 +360,11 @@ function initMapPage() {
         });
     });
 
-    const homeSel = document.getElementById('map-home-currency');
+    const homeSel = $('map-home-currency');
     if (homeSel) {
         homeSel.innerHTML = buildMapCurrencyOptions();
         homeSel.value = 'NOK';
-        homeSel.addEventListener('change', () => {
+        bind(homeSel, 'change', () => {
             refreshMapLayers();
             if (activePopup?._cityData) {
                 const c = activePopup._cityData;
@@ -363,12 +375,12 @@ function initMapPage() {
         });
     }
 
-    document.getElementById('layer-ppi')?.addEventListener('click', (e) => toggleLayer('ppi', e.currentTarget));
-    document.getElementById('layer-temp')?.addEventListener('click', (e) => toggleLayer('temp', e.currentTarget));
-    document.getElementById('layer-nomad')?.addEventListener('click', (e) => toggleLayer('nomad', e.currentTarget));
+    bind($('layer-ppi'), 'click', (e) => toggleLayer('ppi', e.currentTarget));
+    bind($('layer-temp'), 'click', (e) => toggleLayer('temp', e.currentTarget));
+    bind($('layer-nomad'), 'click', (e) => toggleLayer('nomad', e.currentTarget));
 
-    const cityInput = document.getElementById('map-city-search');
-    const cityList = document.getElementById('map-city-suggestions');
+    const cityInput = $('map-city-search');
+    const cityList = $('map-city-suggestions');
     if (cityInput && cityList) {
         initCitySearch({
             inputEl: cityInput,

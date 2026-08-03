@@ -1,6 +1,14 @@
 /** Trivago-style True Cost Stays — multi-provider comparison + nomad intelligence */
 const BOOKING_FX_MARKUP = 0.045;
 
+function $(id) {
+    return document.getElementById(id);
+}
+
+function bind(el, type, handler, options) {
+    if (el) el.addEventListener(type, handler, options);
+}
+
 /** Swap these for production affiliate / partner IDs (left as placeholders = omitted from URLs) */
 const AFFILIATE_IDS = {
     booking: 'YOUR_AFFILIATE_ID',
@@ -416,7 +424,7 @@ function updateFilterCountBadges(counts) {
 }
 
 function updateResultsCount(count, cityLabel) {
-    const el = document.getElementById('resultsCount');
+    const el = $('resultsCount');
     if (!el) return;
     const city = cityLabel || 'Destination';
     if (typeof t === 'function' && t('hotelShowingStays')) {
@@ -427,7 +435,7 @@ function updateResultsCount(count, cityLabel) {
 }
 
 function syncSortUI() {
-    const sortSelect = document.getElementById('hotelSortSelect');
+    const sortSelect = $('hotelSortSelect');
     if (sortSelect && sortSelect.value !== hotelState.sortBy) {
         sortSelect.value = hotelState.sortBy;
     }
@@ -442,7 +450,7 @@ function setSortCriterion(criterion, { fromPill = false } = {}) {
     if (!criterion) return;
     hotelState.sortBy = criterion;
 
-    const sortSelect = document.getElementById('hotelSortSelect');
+    const sortSelect = $('hotelSortSelect');
     if (sortSelect) sortSelect.value = criterion;
 
     document.querySelectorAll('.hotel-sort-pill[data-sort]').forEach((pill) => {
@@ -463,7 +471,7 @@ function setViewMode(mode) {
         btn.classList.toggle('hotel-view-btn--active', active);
         btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
-    const list = document.getElementById('hotel-list');
+    const list = $('hotel-list');
     if (list) {
         list.classList.toggle('hotel-list--compact', hotelState.viewMode === 'compact');
     }
@@ -471,7 +479,7 @@ function setViewMode(mode) {
 }
 
 function getPriceSliderEl() {
-    return document.getElementById('hotel-price-max');
+    return $('hotel-price-max');
 }
 
 function getPriceSliderMax() {
@@ -737,7 +745,7 @@ function renderImageCarousel(hotel) {
 }
 
 function showHotelListSkeleton() {
-    const container = document.getElementById('hotel-list');
+    const container = $('hotel-list');
     if (typeof showSkeletonCards === 'function') {
         showSkeletonCards(container, 4, 'skeleton-card skeleton-card--hotel');
     } else if (container) {
@@ -753,8 +761,8 @@ function syncHotelsFromCity(city) {
     if (!city) return;
     hotelState.city = city;
     invalidateEnrichedCache();
-    const cityInput = document.getElementById('hotel-city-search');
-    const destSelect = document.getElementById('hotel-dest');
+    const cityInput = $('hotel-city-search');
+    const destSelect = $('hotel-dest');
     if (cityInput) cityInput.value = city.label || city.name;
     if (city.currency && destSelect) {
         applyCityToCurrencySelect(city, destSelect);
@@ -854,7 +862,7 @@ function filterListings(listings) {
 }
 
 function renderHotelGrid(sorted, destCode, homeCode, cityCtx, { animate = true } = {}) {
-    const container = document.getElementById('hotel-list');
+    const container = $('hotel-list');
     if (!container) return;
 
     const compact = hotelState.viewMode === 'compact';
@@ -880,7 +888,7 @@ function renderHotelGrid(sorted, destCode, homeCode, cityCtx, { animate = true }
 }
 
 function applyFiltersAndRender({ animate = true } = {}) {
-    const container = document.getElementById('hotel-list');
+    const container = $('hotel-list');
     if (!container) return;
 
     const run = async () => {
@@ -1010,7 +1018,7 @@ function renderBookingActions(deals, bestId, destCode, homeCode, cityCtx, hotel)
 }
 
 function initBookingLinkHandlers() {
-    const list = document.getElementById('hotel-list');
+    const list = $('hotel-list');
     if (!list || list.dataset.bookHandlers) return;
     list.dataset.bookHandlers = '1';
 
@@ -1114,7 +1122,7 @@ function renderHotelCard(hotel, destCode, homeCode, cityCtx, compact = false) {
 }
 
 function updatePriceSliderLabel() {
-    const priceVal = document.getElementById('hotel-price-val');
+    const priceVal = $('hotel-price-val');
     if (!priceVal) return;
     const sym = hotelState.homeCode || 'NOK';
     if (!isPriceFilterActive()) {
@@ -1125,7 +1133,7 @@ function updatePriceSliderLabel() {
 }
 
 function renderResultsMeta(count, cityName) {
-    const meta = document.getElementById('hotel-results-meta');
+    const meta = $('hotel-results-meta');
     if (!meta) return;
     const nights = hotelState.checkIn && hotelState.checkOut
         ? Math.max(1, Math.round((new Date(hotelState.checkOut) - new Date(hotelState.checkIn)) / 86400000))
@@ -1151,15 +1159,18 @@ function getSortLabel(criterion) {
 }
 
 function initHotelsPage() {
-    const destSelect = document.getElementById('hotel-dest');
-    const homeSelect = document.getElementById('hotel-home');
-    const cityInput = document.getElementById('hotel-city-search');
-    const cityList = document.getElementById('hotel-city-suggestions');
-    const priceSlider = document.getElementById('hotel-price-max');
-    const checkIn = document.getElementById('hotel-checkin');
-    const checkOut = document.getElementById('hotel-checkout');
-    const guestsSel = document.getElementById('hotel-guests');
-    const sortSelect = document.getElementById('hotelSortSelect');
+    const list = $('hotel-list');
+    if (!list) return;
+
+    const destSelect = $('hotel-dest');
+    const homeSelect = $('hotel-home');
+    const cityInput = $('hotel-city-search');
+    const cityList = $('hotel-city-suggestions');
+    const priceSlider = $('hotel-price-max');
+    const checkIn = $('hotel-checkin');
+    const checkOut = $('hotel-checkout');
+    const guestsSel = $('hotel-guests');
+    const sortSelect = $('hotelSortSelect');
 
     const dates = defaultDates();
     hotelState.checkIn = dates.checkIn;
@@ -1168,7 +1179,7 @@ function initHotelsPage() {
     if (checkOut) checkOut.value = dates.checkOut;
 
     const options = buildHotelSelectOptions();
-    if (destSelect && options) {
+    if (destSelect && homeSelect && options) {
         destSelect.innerHTML = options;
         homeSelect.innerHTML = options;
         homeSelect.value = 'NOK';
@@ -1203,40 +1214,46 @@ function initHotelsPage() {
 
     if (typeof CityContext !== 'undefined') {
         CityContext.onChange((city) => {
-            if (city && document.getElementById('hotel-city-search')) {
+            if (city && $('hotel-city-search')) {
                 syncHotelsFromCity(city);
             }
         });
     }
 
-    destSelect?.addEventListener('change', () => {
+    bind(destSelect, 'change', () => {
+        if (!destSelect) return;
         hotelState.destCode = destSelect.value;
         invalidateEnrichedCache();
         applyFiltersAndRender({ animate: true });
     });
-    homeSelect?.addEventListener('change', () => {
+    bind(homeSelect, 'change', () => {
+        if (!homeSelect) return;
         hotelState.homeCode = homeSelect.value;
         invalidateEnrichedCache();
         updatePriceSliderLabel();
         applyFiltersAndRender({ animate: true });
     });
 
-    checkIn?.addEventListener('change', () => {
+    bind(checkIn, 'change', () => {
+        if (!checkIn) return;
         hotelState.checkIn = checkIn.value;
         invalidateEnrichedCache();
         applyFiltersAndRender({ animate: false });
     });
-    checkOut?.addEventListener('change', () => {
+    bind(checkOut, 'change', () => {
+        if (!checkOut) return;
         hotelState.checkOut = checkOut.value;
         invalidateEnrichedCache();
         applyFiltersAndRender({ animate: false });
     });
-    guestsSel?.addEventListener('change', () => {
+    bind(guestsSel, 'change', () => {
+        if (!guestsSel) return;
         hotelState.guests = parseInt(guestsSel.value, 10) || 2;
         applyFiltersAndRender({ animate: false });
     });
 
-    sortSelect?.addEventListener('change', () => {
+    bind(sortSelect, 'change', () => {
+        if (!sortSelect) return;
         setSortCriterion(sortSelect.value, { fromPill: false });
     });
 
@@ -1296,7 +1313,8 @@ function initHotelsPage() {
         hotelState.maxPrice = parseFloat(priceSlider.max);
     }
 
-    priceSlider?.addEventListener('input', () => {
+    bind(priceSlider, 'input', () => {
+        if (!priceSlider) return;
         hotelState.maxPrice = parseFloat(priceSlider.value);
         updatePriceSliderLabel();
         applyFiltersAndRender({ animate: true });

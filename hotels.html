@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="True Cost Stays on Nomad OS — compare hotel deals with true daily burn and nomad scores.">
     <meta name="application-name" content="Nomad OS">
     <title>True Cost Stays · Nomad OS</title>
@@ -12,13 +12,14 @@
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon.svg">
     <meta name="theme-color" content="#0a0b0f">
-    <link rel="stylesheet" href="styles.css?v=36">
+    <link rel="stylesheet" href="styles.css?v=38">
 </head>
 <body data-page="hotels">
     <div class="bg-gradient"></div>
     <div class="bg-grid"></div>
 
     <main class="app app--wide">
+        <div class="dashboard-container">
         <header class="header header--subpage">
             <div class="header__top">
                 <nav class="dash-nav dash-nav--compact">
@@ -174,14 +175,15 @@
                 <div class="hotel-skeleton hotel-skeleton--trivago"></div>
             </div>
         </section>
+        </div>
     </main>
 
     <script src="currencies.js?v=20"></script>
     <script src="languages.js?v=20"></script>
     <script src="shared.js?v=20"></script>
     <script src="geocoding.js?v=21"></script>
-    <script src="i18n.js?v=31"></script>
-    <script src="hotels.js?v=29"></script>
+    <script src="i18n.js?v=33"></script>
+    <script src="hotels.js?v=30"></script>
     <script>
         initLanguagePicker();
         applyStaticTranslations();

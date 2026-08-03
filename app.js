@@ -47,6 +47,15 @@ let lastRateUpdate = null;
 let refreshTimer = null;
 let clockTimer = null;
 
+/** Safe DOM access — returns null when element is missing */
+function $(id) {
+    return document.getElementById(id);
+}
+
+function bind(el, type, handler, options) {
+    if (el) el.addEventListener(type, handler, options);
+}
+
 const fromAmount = document.getElementById('from-amount');
 const toAmount = document.getElementById('to-amount');
 const fromCurrency = document.getElementById('from-currency');
@@ -94,6 +103,15 @@ const weatherFallback = document.getElementById('weather-fallback');
 const greetingBanner = document.getElementById('greeting-banner');
 const greetingText = document.getElementById('greeting-text');
 const greetingSub = document.getElementById('greeting-sub');
+const heroDestinationCard = document.getElementById('heroDestinationCard');
+const heroDestinationBg = document.getElementById('hero-destination-bg');
+const heroGreeting = document.getElementById('hero-greeting');
+const heroCityName = document.getElementById('hero-city-name');
+const heroWeatherBadge = document.getElementById('hero-weather-badge');
+const heroVibeBadges = document.getElementById('hero-vibe-badges');
+const welcomeEmptyState = document.getElementById('welcome-empty-state');
+const ambientGlowA = document.getElementById('ambient-glow-a');
+const ambientGlowB = document.getElementById('ambient-glow-b');
 const paymentOptimizer = document.getElementById('payment-optimizer');
 const payLocalAmount = document.getElementById('pay-local-amount');
 const payDccAmount = document.getElementById('pay-dcc-amount');
@@ -111,6 +129,63 @@ const runwayProgressWrap = document.getElementById('runway-progress-wrap');
 const runwayProgressFill = document.getElementById('runway-progress-fill');
 const runwayProgressLabel = document.getElementById('runway-progress-label');
 const financeOsGrid = document.getElementById('finance-os-grid');
+
+/** Shared UI state — synced with CityContext */
+const AppState = {
+    activeCity: null,
+    burnZone: 'moderate',
+    heroImageSeed: 'nomad-world'
+};
+
+const HERO_HOTSPOTS = {
+    tokyo: {
+        id: 'tokyo-jp',
+        name: 'Tokyo',
+        country: 'Japan',
+        country_code: 'JP',
+        lat: 35.6762,
+        lon: 139.6503,
+        currency: 'JPY',
+        label: 'Tokyo, Japan'
+    },
+    oslo: {
+        id: 'oslo-no',
+        name: 'Oslo',
+        country: 'Norway',
+        country_code: 'NO',
+        lat: 59.9139,
+        lon: 10.7522,
+        currency: 'NOK',
+        label: 'Oslo, Norway'
+    },
+    bangkok: {
+        id: 'bangkok-th',
+        name: 'Bangkok',
+        country: 'Thailand',
+        country_code: 'TH',
+        lat: 13.7563,
+        lon: 100.5018,
+        currency: 'THB',
+        label: 'Bangkok, Thailand'
+    },
+    barcelona: {
+        id: 'barcelona-es',
+        name: 'Barcelona',
+        country: 'Spain',
+        country_code: 'ES',
+        lat: 41.3851,
+        lon: 2.1734,
+        currency: 'EUR',
+        label: 'Barcelona, Spain'
+    }
+};
+
+const WEATHER_HERO_ICONS = {
+    sun: '☀️',
+    rain: '🌧️',
+    cloud: '☁️',
+    cold: '❄️'
+};
 
 const COUNTRY_GREETINGS = {
     NO: { text: 'Velkommen!', subKey: 'greetingNorway' },
@@ -174,7 +249,7 @@ function refreshCityContextForLanguage() {
 
     city.label = city.country ? `${city.name}, ${city.country}` : city.name;
 
-    const input = document.getElementById('city-search');
+    const input = $('city-search');
     if (input && document.activeElement !== input) {
         input.value = city.label;
     }
@@ -217,6 +292,8 @@ function buildSelectOptions(filter = '') {
 }
 
 function populateSelects(filter = '') {
+    if (!fromCurrency || !toCurrency) return;
+
     const options = buildSelectOptions(filter);
     const fromVal = fromCurrency.value;
     const toVal = toCurrency.value;
@@ -239,6 +316,7 @@ function populateSelects(filter = '') {
 }
 
 function setBadgeState(state, text) {
+    if (!rateBadge) return;
     rateBadge.className = `rate-badge rate-badge--${state}`;
     rateBadge.textContent = text;
 }
@@ -254,13 +332,14 @@ function formatTimeAgo(date) {
 
 function updateTimestamps() {
     const text = formatTimeAgo(lastRateUpdate);
-    lastUpdated.textContent = text;
-    if (lastRateUpdate) {
+    if (lastUpdated) lastUpdated.textContent = text;
+    if (statsUpdated && lastRateUpdate) {
         statsUpdated.textContent = lastRateUpdate.toLocaleTimeString(getLocale());
     }
 }
 
 function flashLiveUpdate() {
+    if (!toAmount) return;
     toAmount.classList.remove('live-flash');
     void toAmount.offsetWidth;
     toAmount.classList.add('live-flash');
@@ -372,32 +451,184 @@ function buildInsightText(amount, from, to, metrics) {
     return t('insightWorse')(absPct, toName, fromName, amt, real);
 }
 
-function updateGreetingBanner() {
-    if (!greetingBanner || !greetingText) return;
+function getBurnZone(homeCode, destCode) {
+    const home = getPppProfile(homeCode);
+    const dest = getPppProfile(destCode);
+    if (!home || !dest) return 'moderate';
+    const ratio = home.multiplier / dest.multiplier;
+    if (ratio >= 1.12) return 'low';
+    if (ratio >= 0.92) return 'moderate';
+    return 'high';
+}
+
+function updateAmbientGlow(zone) {
+    AppState.burnZone = zone || 'moderate';
+    const cls = `ambient-glow--${AppState.burnZone}`;
+    for (const el of [ambientGlowA, ambientGlowB]) {
+        if (!el) continue;
+        el.classList.remove('ambient-glow--low', 'ambient-glow--moderate', 'ambient-glow--high');
+        el.classList.add(cls);
+    }
+}
+
+function heroImageSeed(city) {
+    const raw = city?.name || city?.label || AppState.activeCity || 'nomad-world';
+    return String(raw).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'nomad-world';
+}
+
+function setHeroBackground(seed) {
+    if (!heroDestinationBg) return;
+    const safeSeed = encodeURIComponent(seed || 'nomad-world');
+    const primary = `https://picsum.photos/seed/${safeSeed}/1200/400`;
+    const fallback = 'https://picsum.photos/seed/nomad-world/1200/400';
+
+    const apply = (url) => {
+        heroDestinationBg.style.backgroundImage = `url('${url}')`;
+        heroDestinationCard?.classList.add('hero-destination--loaded');
+        heroDestinationCard?.classList.remove('hero-destination--default');
+    };
+
+    const img = new Image();
+    img.onload = () => apply(primary);
+    img.onerror = () => apply(fallback);
+    img.src = primary;
+}
+
+function buildVibeBadges(destCode) {
+    const profile = getPppProfile(destCode);
+    if (!profile?.costs) return [];
+
+    const badges = [
+        { icon: '☕', label: typeof t === 'function' ? t('vibeCoffee') : 'Specialty Coffee' },
+        { icon: '⚡', label: typeof t === 'function' ? t('vibeWifi') : 'Fast Wi-Fi' }
+    ];
+
+    const streetRatio = profile.costs.fast_meal / (profile.costs.sitdown_meal || 1);
+    if (streetRatio < 0.4) {
+        badges.push({ icon: '🍜', label: typeof t === 'function' ? t('vibeStreetFood') : 'Great Street Food' });
+    } else if (profile.costs.day_pass_coworking) {
+        badges.push({ icon: '💻', label: typeof t === 'function' ? t('vibeCowork') : 'Nomad Hub' });
+    } else {
+        badges.push({ icon: '🏙️', label: typeof t === 'function' ? t('vibeUrban') : 'Urban Explorer' });
+    }
+
+    return badges;
+}
+
+function renderHeroVibeBadges(destCode) {
+    if (!heroVibeBadges) return;
+    const badges = buildVibeBadges(destCode);
+    if (!badges.length) {
+        heroVibeBadges.innerHTML = '';
+        return;
+    }
+    heroVibeBadges.innerHTML = badges.map((b) =>
+        `<span class="hero-vibe-badge">${b.icon} ${b.label}</span>`
+    ).join('');
+}
+
+function formatHeroWeatherBadge(cityName) {
+    const snap = lastWeatherSnapshot;
+    const timeStr = weatherLocalTime?.textContent && weatherLocalTime.textContent !== '—'
+        ? weatherLocalTime.textContent.slice(0, 5)
+        : null;
+    const icon = snap?.icon ? (WEATHER_HERO_ICONS[snap.icon] || '🌤️') : '🌤️';
+    const temp = snap?.temp != null ? `${Math.round(snap.temp)}°C` : null;
+    const place = cityName || snap?.city || '—';
+
+    if (timeStr && temp) {
+        return `${timeStr} • ${icon} ${temp} in ${place}`;
+    }
+    if (temp) {
+        return `${icon} ${temp} in ${place}`;
+    }
+    if (timeStr) {
+        return `${timeStr} in ${place}`;
+    }
+    return typeof t === 'function' ? t('heroWeatherPending')(place) : `Loading weather in ${place}…`;
+}
+
+function updateWelcomeEmptyState(city) {
+    if (!welcomeEmptyState) return;
+    welcomeEmptyState.hidden = Boolean(city?.name);
+}
+
+function refreshDashboardCardAnimations() {
+    document.querySelectorAll('.finance-os-grid .glass-card, #nomad-runway-card:not([hidden])').forEach((card, i) => {
+        card.classList.remove('fade-in-up');
+        card.style.animationDelay = `${i * 80}ms`;
+        void card.offsetWidth;
+        card.classList.add('fade-in-up');
+    });
+}
+
+function updateHeroDestinationCard() {
+    if (!heroDestinationCard || !toCurrency || !fromCurrency) return;
 
     const city = typeof CityContext !== 'undefined' ? CityContext.get() : null;
-    const destCode = toCurrency?.value;
+    const destCode = toCurrency.value;
+    const homeCode = fromCurrency.value;
     const cc = city?.country_code || CURRENCY_TO_COUNTRY[destCode] || '';
     const flag = typeof countryFlagEmoji === 'function' ? countryFlagEmoji(cc) : '';
     const greeting = getCountryGreeting(cc);
 
-    greetingText.textContent = `${greeting.text}${flag ? ` ${flag}` : ''}`;
-    if (greetingSub) {
-        if (city?.name) {
-            greetingSub.textContent = typeof t === 'function'
-                ? t('greetingCity')(city.name, city.country || '')
-                : `${city.name}, ${city.country || ''}`;
-        } else if (greeting.subKey) {
-            greetingSub.textContent = typeof t === 'function' ? t(greeting.subKey) : '';
-        } else {
-            greetingSub.textContent = typeof t === 'function' ? t('greetingDefaultSub') : '';
+    AppState.activeCity = city?.name || city?.label || null;
+    updateWelcomeEmptyState(city);
+
+    const zone = getBurnZone(homeCode, destCode);
+    updateAmbientGlow(zone);
+
+    if (city?.name) {
+        heroDestinationCard.classList.remove('hero-destination--default');
+        if (heroGreeting) {
+            heroGreeting.textContent = `${greeting.text}${flag ? ` ${flag}` : ''}`;
         }
+        if (heroCityName) {
+            heroCityName.textContent = city.country
+                ? `${city.name}, ${city.country}`
+                : city.name;
+        }
+        setHeroBackground(heroImageSeed(city));
+        renderHeroVibeBadges(destCode);
+    } else {
+        heroDestinationCard.classList.add('hero-destination--default');
+        if (heroGreeting) {
+            heroGreeting.textContent = typeof t === 'function' ? t('greetingDefault') : 'Welcome!';
+        }
+        if (heroCityName) {
+            heroCityName.textContent = typeof t === 'function'
+                ? t('welcomeEmptyTitle')
+                : 'Ready for your next adventure?';
+        }
+        if (heroVibeBadges) heroVibeBadges.innerHTML = '';
+        setHeroBackground('nomad-world');
     }
 
-    greetingBanner.hidden = false;
-    greetingBanner.classList.remove('fade-in-up');
-    void greetingBanner.offsetWidth;
-    greetingBanner.classList.add('fade-in-up');
+    if (heroWeatherBadge) {
+        heroWeatherBadge.textContent = city?.name
+            ? formatHeroWeatherBadge(city.name)
+            : (typeof t === 'function' ? t('heroPickDestination') : 'Pick a destination to see local time & weather');
+    }
+
+    heroDestinationCard.classList.remove('fade-in-up');
+    void heroDestinationCard.offsetWidth;
+    heroDestinationCard.classList.add('fade-in-up');
+}
+
+function updateGreetingBanner() {
+    updateHeroDestinationCard();
+}
+
+function initWelcomeHotspots() {
+    document.querySelectorAll('.welcome-pill[data-hotspot]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const spot = HERO_HOTSPOTS[btn.dataset.hotspot];
+            if (!spot) return;
+            const input = $('city-search');
+            if (input) input.value = spot.label || spot.name;
+            selectDestinationCity(spot);
+        });
+    });
 }
 
 function initTravelStyleSwitcher() {
@@ -428,7 +659,7 @@ function initPaymentCardToggle() {
 }
 
 function updatePaymentOptimizer() {
-    if (!paymentOptimizer) return;
+    if (!paymentOptimizer || !fromAmount || !fromCurrency || !toCurrency) return;
 
     const amount = parseFloat(fromAmount.value) || 0;
     const from = fromCurrency.value;
@@ -468,7 +699,7 @@ function updatePaymentOptimizer() {
 }
 
 function updateNomadRunway() {
-    if (!nomadRunwayCard || !runwayDaysEl) return;
+    if (!nomadRunwayCard || !runwayDaysEl || !fromCurrency || !toCurrency) return;
 
     const funds = parseFloat(runwayBudgetInput?.value) || 0;
     const fundCur = runwayBudgetCurrency?.value || fromCurrency.value;
@@ -483,7 +714,10 @@ function updateNomadRunway() {
     }
 
     nomadRunwayCard.hidden = false;
-    if (financeOsGrid) financeOsGrid.hidden = false;
+    if (financeOsGrid) {
+        financeOsGrid.hidden = false;
+        refreshDashboardCardAnimations();
+    }
 
     if (funds <= 0) {
         runwayDaysEl.textContent = '—';
@@ -543,7 +777,7 @@ function updateNomadRunway() {
 }
 
 function initNomadRunway() {
-    if (!runwayBudgetCurrency) return;
+    if (!runwayBudgetCurrency || !fromCurrency) return;
     const options = buildSelectOptions();
     runwayBudgetCurrency.innerHTML = options;
     runwayBudgetCurrency.value = fromCurrency.value || 'NOK';
@@ -724,6 +958,7 @@ function renderWeatherCard(snapshot) {
     setWeatherIcon(snapshot.icon, snapshot.iconClass);
     startWeatherClock(snapshot.timezone);
     renderWeatherAdvice(snapshot);
+    updateHeroDestinationCard();
 }
 
 function renderWeatherLoading(cityMeta, to) {
@@ -782,6 +1017,10 @@ function updateWeatherLocalClock() {
     } catch {
         weatherLocalTime.textContent = '—';
     }
+    if (heroWeatherBadge && lastWeatherSnapshot) {
+        const city = typeof CityContext !== 'undefined' ? CityContext.get()?.name : null;
+        if (city) heroWeatherBadge.textContent = formatHeroWeatherBadge(city);
+    }
 }
 
 function startWeatherClock(timezone) {
@@ -837,7 +1076,7 @@ async function fetchDestinationWeather(cityMeta, from, to) {
 }
 
 function updateDestinationWeather() {
-    if (!weatherCard) return;
+    if (!weatherCard || !fromCurrency || !toCurrency) return;
 
     const from = fromCurrency.value;
     const to = toCurrency.value;
@@ -853,8 +1092,8 @@ function updateDestinationWeather() {
 }
 
 function initDestinationCitySearch() {
-    const input = document.getElementById('city-search');
-    const list = document.getElementById('citySearchResults');
+    const input = $('city-search');
+    const list = $('citySearchResults');
     if (!input || !list || typeof initCitySearch !== 'function') return;
 
     initCitySearch({
@@ -869,9 +1108,9 @@ function initDestinationCitySearch() {
         }
     });
 
-    toCurrency.addEventListener('change', () => {
+    bind(toCurrency, 'change', () => {
         const ctx = CityContext.get();
-        if (ctx?.currency && ctx.currency !== toCurrency.value) {
+        if (ctx?.currency && toCurrency && ctx.currency !== toCurrency.value) {
             CityContext.clear();
             input.value = '';
         }
@@ -889,8 +1128,11 @@ function initDestinationCitySearch() {
 
 /** Apply city selection: currency, weather, PPP, survival, vault */
 function selectDestinationCity(city) {
-    if (!city) return;
+    if (!city || !toCurrency) return;
     try {
+        if (typeof CityContext !== 'undefined') {
+            CityContext.set(city);
+        }
         if (city.currency) {
             applyCityToCurrencySelect(city, toCurrency);
         }
@@ -918,10 +1160,12 @@ function startWeatherRefresh() {
 function resetPppPanel(to = '') {
     if (!pppNominal) return;
     pppNominal.textContent = '—';
-    pppRealValue.textContent = '—';
-    pppRealHint.textContent = t('pppRealHintDefault');
-    pppGap.textContent = '—';
-    pppGap.className = 'ppp-hero-stat__value ppp-hero-stat__value--gap';
+    if (pppRealValue) pppRealValue.textContent = '—';
+    if (pppRealHint) pppRealHint.textContent = t('pppRealHintDefault');
+    if (pppGap) {
+        pppGap.textContent = '—';
+        pppGap.className = 'ppp-hero-stat__value ppp-hero-stat__value--gap';
+    }
     if (pppGapHint) pppGapHint.textContent = t('pppPowerHint');
     if (pppBarNominal) pppBarNominal.style.width = '0%';
     if (pppBarPpp) pppBarPpp.style.width = '0%';
@@ -935,7 +1179,7 @@ function resetPppPanel(to = '') {
 }
 
 function updatePurchasingPower() {
-    if (!pppPanel || !pppFallback) return;
+    if (!pppPanel || !pppFallback || !fromAmount || !fromCurrency || !toCurrency) return;
 
     const amount = parseFloat(fromAmount.value) || 0;
     const from = fromCurrency.value;
@@ -950,17 +1194,17 @@ function updatePurchasingPower() {
         return;
     }
 
-    pppDestLabel.textContent = to;
+    if (pppDestLabel) pppDestLabel.textContent = to;
     const city = typeof CityContext !== 'undefined' ? CityContext.get() : null;
-    pppDestCountry.textContent = city
+    if (pppDestCountry) pppDestCountry.textContent = city
         ? `${city.name}, ${city.country}`
         : getCountryDisplayName(to);
     renderExamplePrices(to);
 
     if (amount <= 0) {
         resetPppPanel(to);
-        pppDestCountry.textContent = getCountryDisplayName(to);
-        pppInsight.textContent = t('pppEnterAmount');
+        if (pppDestCountry) pppDestCountry.textContent = getCountryDisplayName(to);
+        if (pppInsight) pppInsight.textContent = t('pppEnterAmount');
         return;
     }
 
@@ -971,27 +1215,31 @@ function updatePurchasingPower() {
     const gap = formatPowerGap(powerPct);
     const rating = getNomadRating(metrics.powerRatio);
 
-    pppNominal.textContent = hasMarket ? formatAmount(nominal, to) : t('pppLoading');
-    pppRealValue.textContent = formatAmount(realLifestyle, from);
-    pppRealHint.textContent = t('pppRealHint')(formatAmount(realLifestyle, from), from);
-    pppGap.textContent = gap.text;
-    pppGap.className = `ppp-hero-stat__value ppp-hero-stat__value--gap ppp-hero-stat__value--${gap.className}`;
-    pppGapHint.textContent = powerPct > 0 ? t('pppGapStretch') : powerPct < 0 ? t('pppGapLower') : t('pppGapNear');
+    if (pppNominal) pppNominal.textContent = hasMarket ? formatAmount(nominal, to) : t('pppLoading');
+    if (pppRealValue) pppRealValue.textContent = formatAmount(realLifestyle, from);
+    if (pppRealHint) pppRealHint.textContent = t('pppRealHint')(formatAmount(realLifestyle, from), from);
+    if (pppGap) {
+        pppGap.textContent = gap.text;
+        pppGap.className = `ppp-hero-stat__value ppp-hero-stat__value--gap ppp-hero-stat__value--${gap.className}`;
+    }
+    if (pppGapHint) pppGapHint.textContent = powerPct > 0 ? t('pppGapStretch') : powerPct < 0 ? t('pppGapLower') : t('pppGapNear');
 
     if (hasMarket && pppLocal != null) {
         const maxBar = Math.max(nominal, pppLocal, 1);
-        pppBarNominal.style.width = `${(nominal / maxBar) * 100}%`;
-        pppBarPpp.style.width = `${(pppLocal / maxBar) * 100}%`;
+        if (pppBarNominal) pppBarNominal.style.width = `${(nominal / maxBar) * 100}%`;
+        if (pppBarPpp) pppBarPpp.style.width = `${(pppLocal / maxBar) * 100}%`;
     } else {
-        pppBarNominal.style.width = '0%';
-        pppBarPpp.style.width = '0%';
+        if (pppBarNominal) pppBarNominal.style.width = '0%';
+        if (pppBarPpp) pppBarPpp.style.width = '0%';
     }
 
-    pppInsight.textContent = buildInsightText(amount, from, to, metrics);
+    if (pppInsight) pppInsight.textContent = buildInsightText(amount, from, to, metrics);
 
-    pppRatingBadge.hidden = false;
-    pppRatingBadge.textContent = `${rating.emoji} ${rating.label}`;
-    pppRatingBadge.className = `ppp-rating-badge ppp-rating-badge--${rating.tier}`;
+    if (pppRatingBadge) {
+        pppRatingBadge.hidden = false;
+        pppRatingBadge.textContent = `${rating.emoji} ${rating.label}`;
+        pppRatingBadge.className = `ppp-rating-badge ppp-rating-badge--${rating.tier}`;
+    }
 
     if (pppUnitGrid) {
         pppUnitGrid.querySelectorAll('.ppp-unit').forEach((card) => {
@@ -1008,13 +1256,15 @@ function updatePurchasingPower() {
 }
 
 function updateConversion() {
+    if (!fromAmount || !toAmount || !fromCurrency || !toCurrency) return;
+
     const amount = parseFloat(fromAmount.value) || 0;
     const from = fromCurrency.value;
     const to = toCurrency.value;
 
     if (!from || !to) {
         toAmount.value = '—';
-        rateDisplay.textContent = t('selectCurrency');
+        if (rateDisplay) rateDisplay.textContent = t('selectCurrency');
         updatePurchasingPower();
         return;
     }
@@ -1025,10 +1275,10 @@ function updateConversion() {
 
         const rate = converter.getRate(from, to);
         const rateDecimals = Math.max(currencyMap[from]?.decimals ?? 2, 4);
-        rateDisplay.textContent = `1 ${from} = ${rate.toFixed(rateDecimals)} ${to}`;
+        if (rateDisplay) rateDisplay.textContent = `1 ${from} = ${rate.toFixed(rateDecimals)} ${to}`;
     } catch {
         toAmount.value = '—';
-        rateDisplay.textContent = t('invalidPair');
+        if (rateDisplay) rateDisplay.textContent = t('invalidPair');
     }
 
     updatePurchasingPower();
@@ -1080,6 +1330,8 @@ async function fetchWeeklyRates() {
 }
 
 function renderStats() {
+    if (!statsList) return;
+
     const rows = STATS_CURRENCIES.map((code) => {
         const currency = currencyMap[code];
         const rate = converter.rates[code];
@@ -1092,14 +1344,14 @@ function renderStats() {
     const withChange = rows.filter((r) => r.change != null);
     if (withChange.length) {
         const sorted = [...withChange].sort((a, b) => b.change - a.change);
-        statStrongest.textContent = sorted[0].code;
-        statWeakest.textContent = sorted[sorted.length - 1].code;
+        if (statStrongest) statStrongest.textContent = sorted[0].code;
+        if (statWeakest) statWeakest.textContent = sorted[sorted.length - 1].code;
     } else {
-        statStrongest.textContent = '—';
-        statWeakest.textContent = '—';
+        if (statStrongest) statStrongest.textContent = '—';
+        if (statWeakest) statWeakest.textContent = '—';
     }
 
-    statCount.textContent = Object.keys(converter.rates).length;
+    if (statCount) statCount.textContent = Object.keys(converter.rates).length;
 
     statsList.innerHTML = rows.map(({ code, currency, rate, change }) => {
         const { text, className } = formatChange(change);
@@ -1120,12 +1372,12 @@ function renderStats() {
 
     statsList.querySelectorAll('.stat-row').forEach((row) => {
         row.addEventListener('click', () => {
-            fromCurrency.value = 'USD';
-            toCurrency.value = row.dataset.code;
-            currencySearch.value = '';
+            if (fromCurrency) fromCurrency.value = 'USD';
+            if (toCurrency) toCurrency.value = row.dataset.code;
+            if (currencySearch) currencySearch.value = '';
             populateSelects();
             updateConversion();
-            document.querySelector('.converter-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.querySelector('.converter-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
     });
 }
@@ -1165,8 +1417,8 @@ async function fetchLiveRates() {
             /* safeFetch already toasted for HTTP/offline */
         }
         setBadgeState('error', t('badgeOffline'));
-        lastUpdated.textContent = t('fallbackRates');
-        statsUpdated.textContent = t('badgeOffline');
+        if (lastUpdated) lastUpdated.textContent = t('fallbackRates');
+        if (statsUpdated) statsUpdated.textContent = t('badgeOffline');
         renderStats();
     } finally {
         statsList?.classList.remove('stats-list--loading');
@@ -1174,6 +1426,7 @@ async function fetchLiveRates() {
 }
 
 function swapCurrencies() {
+    if (!fromCurrency || !toCurrency) return;
     const tempCurrency = fromCurrency.value;
     fromCurrency.value = toCurrency.value;
     toCurrency.value = tempCurrency;
@@ -1198,73 +1451,87 @@ function onLanguageChange() {
             weatherModeBadge.textContent = getWeatherModeLabel(lastWeatherSnapshot.mode);
         }
     }
-    if (rateBadge.classList.contains('rate-badge--live')) {
-        setBadgeState('live', t('badgeLive'));
-    } else if (rateBadge.classList.contains('rate-badge--error')) {
-        setBadgeState('error', t('badgeOffline'));
+    if (rateBadge) {
+        if (rateBadge.classList.contains('rate-badge--live')) {
+            setBadgeState('live', t('badgeLive'));
+        } else if (rateBadge.classList.contains('rate-badge--error')) {
+            setBadgeState('error', t('badgeOffline'));
+        }
     }
     renderStats();
 
-    const authBtn = document.getElementById('auth-open-btn');
+    const authBtn = $('auth-open-btn');
     if (authBtn && !authBtn.classList.contains('auth-btn--logged-in')) {
         authBtn.textContent = t('authSignIn');
     }
-    const guestHint = document.getElementById('auth-guest-hint');
+    const guestHint = $('auth-guest-hint');
     if (guestHint && !guestHint.hidden) guestHint.textContent = t('vaultGuestHint');
 }
 
-initLanguagePicker();
-applyStaticTranslations();
-populateSelects();
-updateTimestamps();
-updateConversion();
-fetchLiveRates();
-startLiveRefresh();
-startLiveClock();
-startWeatherRefresh();
-if (typeof initAuthModal === 'function') initAuthModal();
-if (typeof initVaultUI === 'function') initVaultUI();
-initDestinationCitySearch();
-initTravelStyleSwitcher();
-initPaymentCardToggle();
-initNomadRunway();
-if (typeof initFxWatchdog === 'function') initFxWatchdog();
-if (typeof initVatRefundCalculator === 'function') initVatRefundCalculator();
-refreshCityContextForLanguage();
-updateGreetingBanner();
+function initDashboardPage() {
+    if (!fromAmount || !fromCurrency || !toCurrency) return;
 
-if (typeof CityContext !== 'undefined') {
-    CityContext.onChange((city) => {
-        if (!city) return;
-        const input = document.getElementById('city-search');
-        if (input && document.activeElement !== input) {
-            input.value = city.label || city.name;
+    initLanguagePicker();
+    applyStaticTranslations();
+    populateSelects();
+    updateTimestamps();
+    updateConversion();
+    fetchLiveRates();
+    startLiveRefresh();
+    startLiveClock();
+    startWeatherRefresh();
+    if (typeof initAuthModal === 'function') initAuthModal();
+    if (typeof initVaultUI === 'function') initVaultUI();
+    initDestinationCitySearch();
+    initTravelStyleSwitcher();
+    initPaymentCardToggle();
+    initNomadRunway();
+    initWelcomeHotspots();
+    updateHeroDestinationCard();
+    if (typeof initFxWatchdog === 'function') initFxWatchdog();
+    if (typeof initVatRefundCalculator === 'function') initVatRefundCalculator();
+    refreshCityContextForLanguage();
+    updateGreetingBanner();
+
+    if (typeof CityContext !== 'undefined') {
+        CityContext.onChange((city) => {
+            if (!city) {
+                updateWelcomeEmptyState(null);
+                updateHeroDestinationCard();
+                return;
+            }
+            const input = $('city-search');
+            if (input && document.activeElement !== input) {
+                input.value = city.label || city.name;
+            }
+            updateHeroDestinationCard();
+        });
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            fetchLiveRates();
+            updateDestinationWeather();
         }
+    });
+
+    bind(currencySearch, 'input', () => {
+        populateSelects(currencySearch?.value || '');
+    });
+    bind(fromAmount, 'input', updateConversion);
+    bind(fromCurrency, 'change', updateConversion);
+    bind(toCurrency, 'change', updateConversion);
+    bind(swapBtn, 'click', swapCurrencies);
+
+    document.querySelectorAll('.quick-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            if (fromAmount) fromAmount.value = btn.dataset.amount || '';
+            updateConversion();
+        });
     });
 }
 
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-        fetchLiveRates();
-        updateDestinationWeather();
-    }
-});
-
-currencySearch.addEventListener('input', () => {
-    populateSelects(currencySearch.value);
-});
-
-fromAmount.addEventListener('input', updateConversion);
-fromCurrency.addEventListener('change', updateConversion);
-toCurrency.addEventListener('change', updateConversion);
-swapBtn.addEventListener('click', swapCurrencies);
-
-document.querySelectorAll('.quick-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-        fromAmount.value = btn.dataset.amount;
-        updateConversion();
-    });
-});
+initDashboardPage();
 
 window.NomadOSApp = {
     converter,
@@ -1278,5 +1545,7 @@ window.NomadOSApp = {
     updateConversion,
     updateSmartConverter,
     selectDestinationCity,
-    fetchCitySuggestions
+    fetchCitySuggestions,
+    AppState,
+    updateHeroDestinationCard
 };

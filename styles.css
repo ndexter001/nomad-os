@@ -62,6 +62,7 @@
     --font: 'Instrument Sans', system-ui, sans-serif;
     --radius: 16px;
     --radius-sm: 10px;
+    --map-height: 380px;
     color-scheme: dark;
 }
 
@@ -77,8 +78,29 @@ body {
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding: 2.5rem 1.25rem 3rem;
+    padding: 1rem 0.5rem 2rem;
     overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Global responsive container ── */
+.dashboard-container {
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+}
+
+.display-heading,
+.logo-wordmark {
+    font-size: clamp(1.5rem, 5vw, 2.5rem);
 }
 
 .bg-gradient {
@@ -108,16 +130,14 @@ body {
     position: relative;
     z-index: 1;
     width: 100%;
-    max-width: 520px;
+    max-width: 100%;
     animation: fadeUp 0.6s ease-out;
 }
 
-.app--wide {
-    max-width: 720px;
-}
-
-.app--map {
-    max-width: 1100px;
+.app--wide,
+.app--map,
+.app--dashboard {
+    max-width: 100%;
 }
 
 @keyframes fadeUp {
@@ -246,7 +266,6 @@ body {
     display: inline-flex;
     align-items: baseline;
     gap: 0.2rem;
-    font-size: 1.75rem;
     font-weight: 700;
     letter-spacing: -0.03em;
     line-height: 1;
@@ -596,7 +615,7 @@ body {
 
 .ppp-hero-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
     gap: 0.55rem;
     margin-bottom: 1.1rem;
 }
@@ -1188,7 +1207,7 @@ body {
 
 .stats-summary {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
     gap: 0.6rem;
     margin-bottom: 1.25rem;
 }
@@ -1396,12 +1415,8 @@ body {
     background: var(--accent-dim);
 }
 
-.app--wide {
-    max-width: 560px;
-}
-
 .app--dashboard {
-    max-width: 720px;
+    max-width: 100%;
 }
 
 .header--dashboard {
@@ -1531,7 +1546,7 @@ body {
 
 .dashboard-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
     gap: 0.75rem;
 }
 
@@ -2179,6 +2194,7 @@ body {
     backdrop-filter: blur(14px);
     box-shadow: var(--card-shadow);
     transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .glass-card--glow,
@@ -2199,7 +2215,7 @@ body {
 @keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(12px);
     }
     to {
         opacity: 1;
@@ -2208,8 +2224,20 @@ body {
 }
 
 .fade-in-up {
-    animation: fadeInUp 0.45s ease-out both;
+    animation: fadeInUp 0.4s ease-out forwards;
 }
+
+.card-enter-stagger > * {
+    animation: fadeInUp 0.4s ease-out forwards;
+    opacity: 0;
+}
+
+.card-enter-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.card-enter-stagger > *:nth-child(2) { animation-delay: 80ms; }
+.card-enter-stagger > *:nth-child(3) { animation-delay: 160ms; }
+.card-enter-stagger > *:nth-child(4) { animation-delay: 240ms; }
+.card-enter-stagger > *:nth-child(5) { animation-delay: 320ms; }
+.card-enter-stagger > *:nth-child(n+6) { animation-delay: 400ms; }
 
 /* ── Greeting banner ── */
 .greeting-banner {
@@ -2524,10 +2552,11 @@ body {
 }
 
 /* ── Finance OS grid ── */
+.widgets-grid,
 .finance-os-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+    gap: 1.25rem;
     margin-top: 1rem;
 }
 
@@ -2696,10 +2725,14 @@ body {
     flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
-    .finance-os-grid {
-        grid-template-columns: 1fr;
-    }
+.finance-os-grid[hidden] {
+    display: none !important;
+}
+
+.survival-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+    gap: 0.65rem;
 }
 
 .modal {
@@ -2952,12 +2985,6 @@ body {
     background: var(--accent-dim);
     border: 1px solid rgba(129, 140, 248, 0.3);
     color: var(--accent);
-}
-
-.survival-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.65rem;
 }
 
 .survival-block__label {
@@ -3281,9 +3308,9 @@ body {
 }
 
 .map-canvas {
-    height: 520px;
+    height: var(--map-height);
     width: 100%;
-    border-radius: var(--radius-sm);
+    border-radius: 12px;
     z-index: 1;
 }
 
@@ -3297,10 +3324,6 @@ body {
 @media (max-width: 900px) {
     .map-layout {
         grid-template-columns: 1fr;
-    }
-
-    .map-canvas {
-        height: 360px;
     }
 }
 
@@ -3775,20 +3798,24 @@ input[type="date"] {
 }
 
 .hotel-list--trivago {
+    display: flex;
+    flex-direction: column;
     gap: 1.25rem;
 }
 
 .hotel-card--trivago {
     display: grid;
-    grid-template-columns: 220px 1fr;
+    grid-template-columns: minmax(240px, 280px) 1fr;
     gap: 0;
     padding: 0;
     overflow: hidden;
+    align-items: stretch;
 }
 
 .hotel-card__media {
     position: relative;
-    min-height: 200px;
+    min-height: 220px;
+    height: 100%;
     background: rgba(0, 0, 0, 0.35);
     overflow: hidden;
 }
@@ -3797,18 +3824,20 @@ input[type="date"] {
 .hotel-gallery {
     display: grid;
     grid-template-columns: 1fr 72px;
-    grid-template-rows: 1fr 1fr;
+    grid-template-rows: minmax(220px, 1fr);
     gap: 3px;
     height: 100%;
-    min-height: 200px;
+    min-height: 220px;
 }
 
 .hotel-gallery__cover {
-    grid-row: 1 / -1;
+    grid-column: 1;
+    grid-row: 1;
     width: 100%;
     height: 100%;
-    min-height: 200px;
+    min-height: 220px;
     object-fit: cover;
+    object-position: center;
     display: block;
     background: #1a1e29;
 }
@@ -3818,7 +3847,8 @@ input[type="date"] {
     flex-direction: column;
     gap: 3px;
     grid-column: 2;
-    grid-row: 1 / -1;
+    grid-row: 1;
+    min-height: 220px;
 }
 
 .hotel-gallery__thumb {
@@ -3826,6 +3856,7 @@ input[type="date"] {
     width: 100%;
     min-height: 0;
     object-fit: cover;
+    object-position: center;
     display: block;
     background: #1a1e29;
 }
@@ -4414,28 +4445,46 @@ input[type="date"] {
         flex: 1;
     }
 
-    .hotel-card--trivago {
+    .hotel-card--trivago:not(.hotel-card--compact) {
         grid-template-columns: 1fr;
     }
 
-    .hotel-gallery {
-        grid-template-columns: 1fr;
-        grid-template-rows: 180px 56px;
+    .hotel-card--trivago:not(.hotel-card--compact) .hotel-card__media {
+        min-height: 0;
+        height: auto;
     }
 
-    .hotel-gallery__cover {
-        grid-row: 1;
+    .hotel-card--trivago:not(.hotel-card--compact) .hotel-gallery {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-height: 0;
+        height: auto;
     }
 
-    .hotel-gallery__thumbs {
-        grid-column: 1;
-        grid-row: 2;
+    .hotel-card--trivago:not(.hotel-card--compact) .hotel-gallery__cover {
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        min-height: 200px;
+        max-height: 280px;
+        height: auto;
+        object-fit: cover;
+    }
+
+    .hotel-card--trivago:not(.hotel-card--compact) .hotel-gallery__thumbs {
+        display: flex;
         flex-direction: row;
+        gap: 3px;
+        height: 72px;
+        min-height: 72px;
     }
 
-    .hotel-gallery__thumb {
+    .hotel-card--trivago:not(.hotel-card--compact) .hotel-gallery__thumb {
         flex: 1;
-        min-height: 56px;
+        width: auto;
+        height: 100%;
+        min-height: 72px;
+        object-fit: cover;
     }
 
     .hotel-deals__grid {
@@ -4691,4 +4740,522 @@ input[type="date"] {
         width: 100%;
         justify-content: flex-end;
     }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINT ENGINE
+   Mobile ≤768px · Tablet 769–1023px · Desktop 1024px+ · Ultra-wide 1440px+
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Touch-friendly targets (all viewports) ── */
+button,
+input[type="search"],
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+select,
+.dash-nav__link,
+.travel-style-pill,
+.hotel-sort-pill,
+.hotel-filter,
+.quick-btn,
+.auth-btn,
+.btn-primary,
+.btn-secondary,
+.fx-period-btn,
+.payment-card-btn,
+.hotel-slider-mode__btn,
+.map-layer-btn {
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.glass-card,
+.hotel-card,
+.hotel-card--trivago,
+.converter-card,
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.currency-search,
+.currency-select,
+.lang-select {
+    min-height: 44px;
+}
+
+.dash-nav__link {
+    min-width: 44px;
+}
+
+.travel-style-pill,
+.hotel-sort-pill,
+.hotel-filter,
+.quick-btn {
+    min-width: 44px;
+}
+
+/* ── Horizontal scroll utility for pill rows ── */
+.pill-scroll-row {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    padding-bottom: 0.5rem;
+    scrollbar-width: thin;
+}
+
+.pill-scroll-row > * {
+    flex: 0 0 auto;
+}
+
+/* ── Tablet: 769px – 1023px ── */
+@media (min-width: 769px) {
+    :root {
+        --map-height: 480px;
+    }
+
+    body {
+        padding: 1.5rem 1rem 2.5rem;
+    }
+
+    .hotel-search-bar__row--primary {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .hotel-search-bar__field--city {
+        grid-column: 1 / -1;
+    }
+
+    .hotel-search-bar__row--currency {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .payment-card-toggle,
+    .dashboard-toolbar,
+    .hotel-results-toolbar__left {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+    }
+
+    .payment-card-toggle .payment-card-btn,
+    .dashboard-toolbar > * {
+        flex: 1 1 calc(50% - 0.35rem);
+        min-width: min(100%, 280px);
+    }
+}
+
+/* ── Desktop: 1024px+ ── */
+@media (min-width: 1024px) {
+    :root {
+        --map-height: 600px;
+    }
+
+    body {
+        padding: 2rem 1.25rem 3rem;
+    }
+
+    .dashboard-container > .header,
+    .dashboard-container > .header--subpage {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        margin-left: -1rem;
+        margin-right: -1rem;
+        padding: 0.75rem 1rem 1rem;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        background: rgba(10, 11, 15, 0.82);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .travel-style-bar--sticky {
+        top: 5.5rem;
+    }
+
+    .hotel-search-bar__row--primary {
+        grid-template-columns: 2fr 1fr 1fr 0.6fr;
+    }
+
+    .hotel-search-bar__field--city {
+        grid-column: auto;
+    }
+
+    .hotel-search-bar__row--currency {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .map-layout {
+        grid-template-columns: 300px 1fr;
+    }
+}
+
+/* ── Ultra-wide: 1440px+ ── */
+@media (min-width: 1440px) {
+    .dashboard-container {
+        padding: 1.25rem 1.5rem;
+    }
+
+    .finance-os-grid,
+    .widgets-grid {
+        gap: 1.5rem;
+    }
+}
+
+/* ── Mobile: max-width 768px ── */
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 0.75rem;
+    }
+
+    .header__top {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 0.75rem;
+    }
+
+    .header__top-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .dash-nav {
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.5rem;
+    }
+
+    .dash-nav__link {
+        flex: 0 0 auto;
+    }
+
+    .search-row,
+    .city-search-row,
+    .currency-row {
+        width: 100%;
+    }
+
+    .currency-search,
+    .currency-select {
+        width: 100%;
+    }
+
+    .travel-style-pills,
+    .hotel-sort-pills,
+    .hotel-filters,
+    .payment-card-toggle,
+    .fx-period-toggle,
+    .pill-group {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+        padding-bottom: 0.5rem;
+        gap: 0.45rem;
+    }
+
+    .travel-style-pill,
+    .hotel-sort-pill,
+    .hotel-filter,
+    .payment-card-btn,
+    .fx-period-btn,
+    .pill {
+        flex: 0 0 auto;
+        min-width: max-content;
+    }
+
+    .hotel-search-bar__row--primary,
+    .hotel-search-bar__row--currency {
+        grid-template-columns: 1fr;
+    }
+
+    .hotel-search-bar__field--city {
+        grid-column: auto;
+    }
+
+    .hotel-results-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .hotel-results-toolbar__left,
+    .hotel-results-toolbar__right {
+        width: 100%;
+    }
+
+    .hotel-deals__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dash-page-title,
+    .greeting-banner__text {
+        font-size: clamp(1.5rem, 5vw, 2.5rem);
+    }
+
+    .stats-list {
+        min-width: 520px;
+    }
+
+    .stat-row {
+        grid-template-columns: 1fr auto auto;
+    }
+
+    .survival-grid,
+    .ppp-hero-stats,
+    .stats-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .map-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .converter-card,
+    .glass-card {
+        padding: 1rem;
+    }
+
+    .hero-destination {
+        min-height: 200px;
+    }
+
+    .hero-destination__city {
+        font-size: clamp(1.35rem, 6vw, 2rem);
+    }
+
+    .hero-destination__vibes {
+        gap: 0.35rem;
+    }
+
+    .welcome-empty__pills {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.35rem;
+    }
+
+    .welcome-pill {
+        flex: 0 0 auto;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VISUAL SOUL — Hero destination, ambient glows, welcome empty state
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ambient-glow {
+    position: fixed;
+    width: min(500px, 80vw);
+    height: min(500px, 80vw);
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 0;
+    transition: background 1.4s ease, opacity 1s ease;
+}
+
+.ambient-glow--a {
+    top: 8%;
+    left: -12%;
+}
+
+.ambient-glow--b {
+    bottom: 6%;
+    right: -12%;
+}
+
+.ambient-glow--low {
+    background: #10b981;
+}
+
+.ambient-glow--moderate {
+    background: #3b82f6;
+}
+
+.ambient-glow--high {
+    background: #f59e0b;
+}
+
+/* ── Hero destination canvas ── */
+.hero-destination {
+    position: relative;
+    margin-top: 1.25rem;
+    min-height: 240px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+        0 24px 56px rgba(0, 0, 0, 0.45);
+}
+
+.hero-destination__bg {
+    position: absolute;
+    inset: 0;
+    background-color: #0f172a;
+    background-size: cover;
+    background-position: center;
+    transform: scale(1.02);
+    transition: transform 8s ease-out, opacity 0.6s ease;
+}
+
+.hero-destination--loaded .hero-destination__bg {
+    transform: scale(1);
+}
+
+.hero-destination__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.95) 100%);
+    pointer-events: none;
+}
+
+.hero-destination__content {
+    position: relative;
+    z-index: 1;
+    padding: 1.75rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    min-height: 240px;
+    justify-content: flex-end;
+}
+
+.hero-destination__greeting {
+    font-size: clamp(1.1rem, 3.5vw, 1.45rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.hero-destination__city {
+    font-size: clamp(1.5rem, 5vw, 2.25rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    color: var(--text);
+    margin: 0;
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.55);
+}
+
+.hero-destination__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: fit-content;
+    margin-top: 0.15rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.hero-destination__vibes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.5rem;
+}
+
+.hero-vibe-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.32rem 0.65rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: rgba(240, 242, 245, 0.92);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    backdrop-filter: blur(8px);
+    white-space: nowrap;
+}
+
+.hero-destination--default .hero-destination__bg {
+    background-image: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(16, 185, 129, 0.2)),
+        url('https://picsum.photos/seed/nomad-world/1200/400');
+    background-size: cover;
+    background-position: center;
+}
+
+/* ── Welcome empty state ── */
+.welcome-empty {
+    text-align: center;
+    padding: 1.5rem 1.25rem 1.35rem;
+    background: linear-gradient(145deg, rgba(59, 130, 246, 0.08) 0%, var(--card-bg) 45%);
+    border-color: rgba(59, 130, 246, 0.18);
+}
+
+.welcome-empty[hidden] {
+    display: none !important;
+}
+
+.welcome-empty__icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    filter: drop-shadow(0 4px 12px rgba(59, 130, 246, 0.35));
+}
+
+.welcome-empty__title {
+    font-size: clamp(1.15rem, 4vw, 1.45rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.45rem;
+    color: var(--text);
+}
+
+.welcome-empty__sub {
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--text-muted);
+    max-width: 36rem;
+    margin: 0 auto 1.1rem;
+}
+
+.welcome-empty__pills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.welcome-pill {
+    font-family: var(--font);
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0.55rem 0.95rem;
+    min-height: 44px;
+    border-radius: 999px;
+    border: 1px solid rgba(129, 140, 248, 0.35);
+    background: rgba(129, 140, 248, 0.12);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.welcome-pill:hover {
+    background: rgba(129, 140, 248, 0.22);
+    border-color: rgba(129, 140, 248, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(129, 140, 248, 0.15);
+}
+
+.welcome-pill:active {
+    transform: translateY(0);
 }
