@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konverter</title>
+    <script>
+        (function () {
+            var t = 'dark';
+            try {
+                var s = localStorage.getItem('konverter-theme');
+                if (s === 'light' || s === 'dark') t = s;
+                else if (window.matchMedia('(prefers-color-scheme: light)').matches) t = 'light';
+            } catch (e) { /* ignore */ }
+            document.documentElement.setAttribute('data-theme', t);
+            document.documentElement.style.colorScheme = t;
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=32">
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <div class="bg-grid"></div>
+
+    <main class="app app--wide">
+        <header class="header">
+            <div class="header__top">
+                <nav class="dash-nav dash-nav--compact">
+                    <a href="index.html" class="dash-nav__link dash-nav__link--active">⇄</a>
+                    <a href="hotels.html" class="dash-nav__link">🏨</a>
+                    <a href="map.html" class="dash-nav__link">🗺</a>
+                </nav>
+                <div class="header__top-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+                        <span class="theme-toggle__icon theme-toggle__icon--dark" aria-hidden="true">🌙</span>
+                        <span class="theme-toggle__icon theme-toggle__icon--light" aria-hidden="true">☀️</span>
+                    </button>
+                    <div class="lang-picker">
+                        <label for="lang-select" class="lang-picker__label" data-i18n="langLabel">Språk</label>
+                        <select id="lang-select" class="lang-select" aria-label="Language"></select>
+                    </div>
+                    <button type="button" id="auth-open-btn" class="auth-btn" data-i18n="authSignIn">Sign In</button>
+                </div>
+            </div>
+            <div class="logo">
+                <span class="logo-icon">⇄</span>
+                <span class="logo-text" data-i18n="logo">Konverter</span>
+            </div>
+            <p class="tagline" data-i18n="tagline">166 valutaer · live kurser · PPP leveindeks</p>
+        </header>
+
+        <div id="greeting-banner" class="greeting-banner fade-in-up" hidden>
+            <div class="greeting-banner__glow" aria-hidden="true"></div>
+            <p id="greeting-text" class="greeting-banner__text">Velkommen!</p>
+            <p id="greeting-sub" class="greeting-banner__sub"></p>
+        </div>
+
+        <section class="travel-style-bar glass-card glass-card--glow fade-in-up travel-style-bar--sticky" aria-label="Travel style">
+            <p class="field-label travel-style-bar__label" data-i18n="travelStyleLabel">Travel style</p>
+            <div class="travel-style-pills" role="group" aria-label="Travel tier">
+                <button type="button" class="travel-style-pill" data-tier="backpacker" data-i18n="travelStyleBackpacker">🎒 Backpacker</button>
+                <button type="button" class="travel-style-pill travel-style-pill--active" data-tier="nomad" data-i18n="travelStyleNomad">💻 Nomad</button>
+                <button type="button" class="travel-style-pill" data-tier="luxury" data-i18n="travelStyleLuxury">🥂 Luxury</button>
+            </div>
+        </section>
+
+        <section class="converter-card glass-card--glow fade-in-up">
+            <div class="search-row city-search-row">
+                <label class="field-label" for="city-search" data-i18n="citySearchLabel">Destinasjonsby</label>
+                <div class="city-suggest">
+                    <input
+                        type="search"
+                        id="city-search"
+                        class="currency-search"
+                        data-i18n-placeholder="citySearchPlaceholder"
+                        placeholder="Søk hvilken som helst by — Tokyo, Bergen, Rio…"
+                        autocomplete="off"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-controls="citySearchResults"
+                        aria-expanded="false"
+                    >
+                    <div id="citySearchResults" class="city-suggest__list" role="listbox" hidden></div>
+                </div>
+                <p class="city-search-hint" data-i18n="citySearchHint">Valgfritt — setter valuta og vær automatisk. Du kan fortsatt velge valuta manuelt.</p>
+            </div>
+
+            <div class="search-row">
+                <label class="field-label" for="currency-search" data-i18n="searchLabel">Søk valutaer</label>
+                <input
+                    type="search"
+                    id="currency-search"
+                    class="currency-search"
+                    data-i18n-placeholder="searchPlaceholder"
+                    placeholder="Skriv kode eller navn — f.eks. NOK, Yen, Real…"
+                    autocomplete="off"
+                >
+            </div>
+
+            <div class="currency-row">
+                <div class="currency-field">
+                    <select id="from-currency" class="currency-select" data-i18n-aria="fromAria" aria-label="Fra valuta"></select>
+                    <input
+                        type="number"
+                        id="from-amount"
+                        class="amount-input"
+                        value="100"
+                        min="0"
+                        step="any"
+                        placeholder="0.00"
+                    >
+                </div>
+            </div>
+
+            <button type="button" id="swap-btn" class="swap-btn" data-i18n-aria="swapAria" aria-label="Bytt valuta">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M7 16V4M7 4L3 8M7 4L11 8"/>
+                    <path d="M17 8V20M17 20L21 16M17 20L13 16"/>
+                </svg>
+            </button>
+
+            <div class="currency-row">
+                <div class="currency-field">
+                    <select id="to-currency" class="currency-select" data-i18n-aria="toAria" aria-label="Til valuta"></select>
+                    <input
+                        type="text"
+                        id="to-amount"
+                        class="amount-input amount-output"
+                        readonly
+                        tabindex="-1"
+                    >
+                </div>
+            </div>
+
+            <div class="rate-bar">
+                <span id="rate-display" class="rate-text"></span>
+                <span id="rate-badge" class="rate-badge rate-badge--loading" data-i18n="badgeLoading">Laster…</span>
+            </div>
+            <p id="last-updated" class="last-updated"></p>
+
+            <div id="payment-optimizer" class="payment-optimizer fade-in-up" hidden>
+                <div class="payment-optimizer__header">
+                    <h3 class="payment-optimizer__title" data-i18n="paymentOptimizerTitle">Smart Payment Optimizer</h3>
+                    <span class="payment-optimizer__badge" data-i18n="paymentOptimizerBadge">Card FX</span>
+                </div>
+                <div class="payment-card-toggle" role="group" aria-label="Card type">
+                    <button type="button" class="payment-card-btn payment-card-btn--active" data-card="travel" data-i18n="paymentCardTravel">💳 Travel / Wise / Revolut</button>
+                    <button type="button" class="payment-card-btn" data-card="standard" data-i18n="paymentCardStandard">🏦 Standard Credit / Debit</button>
+                </div>
+                <div class="payment-optimizer__grid">
+                    <div class="payment-optimizer__row">
+                        <span data-i18n="paymentPayLocal">Pay in local currency</span>
+                        <strong id="pay-local-amount">—</strong>
+                    </div>
+                    <div class="payment-optimizer__row payment-optimizer__row--warn">
+                        <span data-i18n="paymentDcc">DCC / pay in home currency</span>
+                        <strong id="pay-dcc-amount">—</strong>
+                    </div>
+                    <div class="payment-optimizer__row payment-optimizer__row--save">
+                        <span data-i18n="paymentSavings">You save</span>
+                        <strong id="pay-savings-amount">—</strong>
+                    </div>
+                </div>
+                <p id="payment-optimizer-advice" class="payment-optimizer__advice"></p>
+                <p id="payment-optimizer-tip" class="payment-optimizer__tip" data-i18n="paymentOptimizerTip">
+                    💡 Always pay in local currency with a zero-FX card (e.g., Revolut/Wise) to save ~3.5% in conversion markups.
+                </p>
+            </div>
+        </section>
+
+        <section id="nomad-runway-card" class="nomad-runway-card glass-card glass-card--glow fade-in-up" hidden>
+            <div class="nomad-runway-card__header">
+                <div>
+                    <h2 class="nomad-runway-card__title" data-i18n="runwayTitle">Nomad Budget Runway</h2>
+                    <p class="nomad-runway-card__sub" data-i18n="runwaySub">How long your funds last · PPP + stay costs</p>
+                </div>
+                <div id="runway-badge" class="nomad-runway-badge">
+                    <span id="runway-days" class="nomad-runway-badge__days">—</span>
+                    <span class="nomad-runway-badge__unit" data-i18n="runwayDays">days</span>
+                </div>
+            </div>
+            <div class="nomad-runway-inputs">
+                <label class="field-label" for="runway-budget" data-i18n="runwayBudgetLabel">Available funds</label>
+                <div class="nomad-runway-input-row">
+                    <input type="number" id="runway-budget" class="amount-input" min="0" step="any" placeholder="50000">
+                    <select id="runway-budget-currency" class="currency-select currency-select--compact"></select>
+                </div>
+            </div>
+            <div id="runway-progress-wrap" class="runway-progress-wrap" hidden>
+                <div class="runway-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                    <div id="runway-progress-fill" class="runway-progress-bar__fill"></div>
+                </div>
+                <span id="runway-progress-label" class="runway-progress-label"></span>
+            </div>
+            <p id="runway-comparison" class="runway-comparison"></p>
+            <p id="runway-detail" class="nomad-runway-detail">—</p>
+            <p class="nomad-runway-hint" data-i18n="runwayHint">Includes styled daily burn (room + food + transit) for your travel tier.</p>
+        </section>
+
+        <section class="finance-os-grid fade-in-up" id="finance-os-grid" hidden>
+            <article id="fx-watchdog-card" class="fx-watchdog-card glass-card glass-card--glow" hidden>
+                <header class="finance-card__header">
+                    <div>
+                        <h2 class="finance-card__title" data-i18n="fxWatchdogTitle">Rate Alert &amp; FX Volatility</h2>
+                        <p class="finance-card__sub" data-i18n="fxWatchdogSub">7-day trend · lock-in timing · alerts</p>
+                    </div>
+                    <div class="fx-period-toggle" role="group" aria-label="Trend period">
+                        <button type="button" class="fx-period-btn fx-period-btn--active" data-fx-period="7" data-i18n="fxPeriod7d">7d</button>
+                        <button type="button" class="fx-period-btn" data-fx-period="30" data-i18n="fxPeriod30d">30d</button>
+                    </div>
+                </header>
+                <p id="fx-current-rate" class="fx-current-rate">—</p>
+                <p id="fx-trend-text" class="fx-trend-text">—</p>
+                <p id="fx-trend-sentiment" class="fx-trend-sentiment">—</p>
+                <p id="fx-alert-status" class="fx-alert-status" hidden></p>
+                <div class="fx-alert-form">
+                    <label class="field-label" for="fx-alert-target" data-i18n="fxAlertTargetLabel">Target rate (1 home → dest)</label>
+                    <div class="fx-alert-form__row">
+                        <input type="number" id="fx-alert-target" class="amount-input" min="0" step="any" placeholder="0.0000">
+                        <button type="button" id="fx-set-alert-btn" class="btn-secondary" data-i18n="fxSetAlert">Set Rate Alert</button>
+                    </div>
+                </div>
+                <div id="fx-alerts-list" class="fx-alerts-list" hidden></div>
+            </article>
+
+            <article id="vat-refund-card" class="vat-refund-card glass-card glass-card--glow" hidden>
+                <header class="finance-card__header">
+                    <div>
+                        <h2 class="finance-card__title" data-i18n="vatRefundTitle">Airport Tax &amp; VAT Refund</h2>
+                        <p class="finance-card__sub" data-i18n="vatRefundSub">Quick reference · recoverable tax at departure</p>
+                    </div>
+                </header>
+                <p id="vat-country-name" class="vat-country-name"></p>
+                <p id="vat-rate-display" class="vat-rate-display">—</p>
+                <label class="field-label" for="vat-spend-input" data-i18n="vatSpendLabel">Shopping spend (local currency)</label>
+                <input type="number" id="vat-spend-input" class="amount-input" min="0" step="any" placeholder="50000">
+                <p id="vat-refund-result" class="vat-refund-result">—</p>
+                <h3 class="vat-checklist-title" data-i18n="vatChecklistTitle">Airport customs checklist</h3>
+                <ul id="vat-checklist" class="vat-checklist"></ul>
+            </article>
+        </section>
+
+        <section class="survival-card glass-card" id="survival-card" hidden>
+            <h2 class="survival-card__title" id="survival-title" data-i18n="survivalTitle">Nomad Survival & Safety Net</h2>
+            <div class="survival-grid">
+                <div class="survival-block">
+                    <h3 class="survival-block__label" data-i18n="survivalSim">Local SIM / eSIM</h3>
+                    <div id="survival-sim" class="survival-sim-grid"></div>
+                </div>
+                <div class="survival-block">
+                    <h3 class="survival-block__label" data-i18n="survivalCulture">Tipping & Tax</h3>
+                    <span id="survival-tipping-badge" class="survival-badge">—</span>
+                    <p id="survival-vat" class="survival-vat">—</p>
+                </div>
+                <div class="survival-block">
+                    <h3 class="survival-block__label" data-i18n="survivalCash">Emergency cash stash</h3>
+                    <div id="survival-cash" class="survival-cash">—</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="vault-panel glass-card" id="vault-panel" hidden>
+            <h2 class="vault-panel__title" data-i18n="vaultTitle">Personal Budget Vault</h2>
+            <p id="auth-guest-hint" class="vault-guest-hint" data-i18n="vaultGuestHint">Sign in to save budget, trips, and track foreign subscriptions.</p>
+
+            <div class="vault-budget-row">
+                <label class="field-label" for="vault-budget" data-i18n="vaultBudgetLabel">Monthly budget</label>
+                <div class="vault-budget-inputs">
+                    <input type="number" id="vault-budget" class="amount-input" min="0" step="any" placeholder="30000">
+                    <select id="vault-budget-currency" class="currency-select currency-select--compact"></select>
+                    <button type="button" id="vault-save-budget" class="btn-secondary" data-i18n="vaultSave">Save</button>
+                </div>
+            </div>
+
+            <div id="vault-runway" class="vault-runway"></div>
+
+            <div class="vault-section">
+                <h3 class="vault-section__title" data-i18n="vaultTrips">Saved trips</h3>
+                <form id="vault-trip-form" class="vault-form">
+                    <input type="text" id="vault-trip-name" class="currency-search" placeholder="Tokyo Trip 2027" required>
+                    <select id="vault-trip-currency" class="currency-select currency-select--compact"></select>
+                    <input type="number" id="vault-trip-budget" class="amount-input" min="0" placeholder="150000" required>
+                    <button type="submit" class="btn-secondary" data-i18n="vaultAddTrip">Add trip</button>
+                </form>
+                <div id="vault-trips-list" class="vault-list"></div>
+            </div>
+
+            <div class="vault-section">
+                <h3 class="vault-section__title" data-i18n="vaultSubs">Foreign subscriptions</h3>
+                <div id="vault-subs-alerts" class="vault-alerts" hidden></div>
+                <form id="vault-sub-form" class="vault-form">
+                    <input type="text" id="vault-sub-name" class="currency-search" placeholder="Cursor" required>
+                    <input type="number" id="vault-sub-amount" class="amount-input" min="0" step="any" placeholder="20" required>
+                    <select id="vault-sub-currency" class="currency-select currency-select--compact"></select>
+                    <button type="submit" class="btn-secondary" data-i18n="vaultAddSub">Track</button>
+                </form>
+                <div id="vault-subs-list" class="vault-list"></div>
+            </div>
+        </section>
+
+        <section class="ppp-deep-insights" id="ppp-engine" data-i18n-aria="pppAria" aria-label="Kjøpekraftsparitet og lokalt levekostnadsindeks">
+            <div class="ppp-deep-insights__header">
+                <div>
+                    <h2 class="ppp-deep-insights__title" data-i18n="pppTitle">Kjøpekraft &amp; lokalt leveindeks</h2>
+                    <p class="ppp-deep-insights__sub" data-i18n="pppSub">PPP-motor · reell livsstilskraft vs markedsverdi</p>
+                </div>
+                <span id="ppp-rating-badge" class="ppp-rating-badge ppp-rating-badge--neutral" hidden>—</span>
+            </div>
+
+            <p class="ppp-help">
+                <abbr title="Purchasing Power Parity">PPP</abbr> <span data-i18n="pppHelp">sammenligner lokal levekostnad — ikke bare valutakursen.</span>
+                <span class="ppp-help__hint" data-i18n="pppHelpHint">Estimater basert på 2024/25 kostnadsindekser og lokale prisnivåer.</span>
+            </p>
+
+            <article
+                class="destination-weather-card"
+                id="destination-weather-card"
+                data-i18n-aria="weatherAria"
+                aria-label="Smart weather and activity value index"
+                hidden
+            >
+                <div class="destination-weather-card__header">
+                    <div class="destination-weather-card__icon-wrap" id="weather-icon-wrap" aria-hidden="true">
+                        <svg class="weather-icon weather-icon--sun" viewBox="0 0 48 48" fill="none">
+                            <circle cx="24" cy="24" r="10" stroke="currentColor" stroke-width="2"/>
+                            <path d="M24 4v6M24 38v6M4 24h6M38 24h6M9.9 9.9l4.2 4.2M33.9 33.9l4.2 4.2M9.9 38.1l4.2-4.2M33.9 14.1l4.2-4.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="destination-weather-card__heading">
+                        <h3 class="destination-weather-card__title" data-i18n="weatherTitle">Smart vær &amp; aktivitetsindeks</h3>
+                        <p class="destination-weather-card__sub" data-i18n="weatherSub">Værjustert reisekostnad · knyttet til destinasjonsvaluta</p>
+                        <p class="destination-weather-card__city" id="weather-city">—</p>
+                    </div>
+                    <div class="destination-weather-card__clock">
+                        <span class="destination-weather-card__clock-label" data-i18n="weatherLocalTime">Lokal tid</span>
+                        <time id="weather-local-time" class="destination-weather-card__clock-value">—</time>
+                    </div>
+                </div>
+
+                <div class="destination-weather-card__metrics" id="weather-metrics">
+                    <div class="weather-metric">
+                        <span class="weather-metric__label" data-i18n="weatherNow">Nå</span>
+                        <span class="weather-metric__value" id="weather-temp">—</span>
+                    </div>
+                    <div class="weather-metric">
+                        <span class="weather-metric__label" data-i18n="weatherHigh">Høy</span>
+                        <span class="weather-metric__value" id="weather-high">—</span>
+                    </div>
+                    <div class="weather-metric">
+                        <span class="weather-metric__label" data-i18n="weatherLow">Lav</span>
+                        <span class="weather-metric__value" id="weather-low">—</span>
+                    </div>
+                    <div class="weather-metric">
+                        <span class="weather-metric__label" data-i18n="weatherRain">Regn</span>
+                        <span class="weather-metric__value" id="weather-rain">—</span>
+                    </div>
+                </div>
+
+                <div class="destination-weather-card__body">
+                    <span id="weather-mode-badge" class="weather-mode-badge weather-mode-badge--loading" data-i18n="weatherLoading">Henter vær…</span>
+                    <p id="weather-advice" class="destination-weather-card__advice"></p>
+                    <p id="weather-alert" class="destination-weather-card__alert" hidden></p>
+                </div>
+
+                <p id="weather-fallback" class="destination-weather-card__fallback" data-i18n="weatherUnavailable" hidden>
+                    Søk og velg en destinasjonsby for værdata.
+                </p>
+            </article>
+
+            <p id="ppp-fallback" class="ppp-fallback" data-i18n="pppFallback" hidden>
+                PPP-data er ikke tilgjengelig for dette valutaparet. Velg blant 30+ støttede valutaer (f.eks. USD, EUR, THB, NOK).
+            </p>
+
+            <div id="ppp-panel" class="ppp-panel">
+                <div class="ppp-hero-stats">
+                    <div class="ppp-hero-stat">
+                        <span class="ppp-hero-stat__label" data-i18n="pppMarketValue">Markedsverdi</span>
+                        <span id="ppp-nominal" class="ppp-hero-stat__value">—</span>
+                        <span class="ppp-hero-stat__hint" data-i18n="pppMarketHint">Vekslet beløp</span>
+                    </div>
+                    <div class="ppp-hero-stat ppp-hero-stat--accent">
+                        <span class="ppp-hero-stat__label" data-i18n="pppRealValue">Reell livsstilsverdi</span>
+                        <span id="ppp-real-value" class="ppp-hero-stat__value">—</span>
+                        <span id="ppp-real-hint" class="ppp-hero-stat__hint" data-i18n="pppRealHintDefault">PPP justert i utgangsvaluta</span>
+                    </div>
+                    <div class="ppp-hero-stat">
+                        <span class="ppp-hero-stat__label" data-i18n="pppPower">Kjøpekraft</span>
+                        <span id="ppp-gap" class="ppp-hero-stat__value ppp-hero-stat__value--gap">—</span>
+                        <span id="ppp-gap-hint" class="ppp-hero-stat__hint" data-i18n="pppPowerHint">vs markedsverdi</span>
+                    </div>
+                </div>
+
+                <div class="ppp-bar-wrap">
+                    <div class="ppp-bar-labels">
+                        <span data-i18n="pppBarMarket">Markedskurs</span>
+                        <span data-i18n="pppBarPpp">PPP justert</span>
+                    </div>
+                    <div class="ppp-bar">
+                        <div id="ppp-bar-nominal" class="ppp-bar__fill ppp-bar__fill--nominal"></div>
+                        <div id="ppp-bar-ppp" class="ppp-bar__fill ppp-bar__fill--ppp"></div>
+                    </div>
+                </div>
+
+                <p id="ppp-insight" class="ppp-insight"></p>
+
+                <h3 class="ppp-unit-heading">
+                    <span data-i18n="pppUnitsHeading">Lokale enheter i</span> <span id="ppp-dest-label">—</span>
+                    <span class="ppp-unit-heading__country" id="ppp-dest-country"></span>
+                </h3>
+
+                <div class="ppp-unit-grid" id="ppp-unit-grid">
+                    <article class="ppp-unit" data-unit="coffee">
+                        <span class="ppp-unit__icon" aria-hidden="true">☕</span>
+                        <div class="ppp-unit__body">
+                            <span class="ppp-unit__name">Kaffe</span>
+                            <span class="ppp-unit__desc">Cappuccino / iskaffe</span>
+                            <span class="ppp-unit__count" data-ppp-count>—</span>
+                        </div>
+                    </article>
+                    <article class="ppp-unit" data-unit="fast_meal">
+                        <span class="ppp-unit__icon" aria-hidden="true">🍜</span>
+                        <div class="ppp-unit__body">
+                            <span class="ppp-unit__name">Gatemat</span>
+                            <span class="ppp-unit__desc">Gatekjøkken / enkel middag</span>
+                            <span class="ppp-unit__count" data-ppp-count>—</span>
+                        </div>
+                    </article>
+                    <article class="ppp-unit" data-unit="sitdown_meal">
+                        <span class="ppp-unit__icon" aria-hidden="true">🍽️</span>
+                        <div class="ppp-unit__body">
+                            <span class="ppp-unit__name">Restaurant</span>
+                            <span class="ppp-unit__desc">2-retters middag</span>
+                            <span class="ppp-unit__count" data-ppp-count>—</span>
+                        </div>
+                    </article>
+                    <article class="ppp-unit" data-unit="local_transport">
+                        <span class="ppp-unit__icon" aria-hidden="true">🚌</span>
+                        <div class="ppp-unit__body">
+                            <span class="ppp-unit__name">Kollektiv</span>
+                            <span class="ppp-unit__desc">Buss / T-bane / kort tur</span>
+                            <span class="ppp-unit__count" data-ppp-count>—</span>
+                        </div>
+                    </article>
+                    <article class="ppp-unit" data-unit="day_pass_coworking">
+                        <span class="ppp-unit__icon" aria-hidden="true">💻</span>
+                        <div class="ppp-unit__body">
+                            <span class="ppp-unit__name">Coworking</span>
+                            <span class="ppp-unit__desc">Dagskort / arbeidsplass</span>
+                            <span class="ppp-unit__count" data-ppp-count>—</span>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="ppp-prices">
+                    <h3 class="ppp-prices__title">
+                        <span data-i18n="pppExamplePrices">Eksempelpriser i</span>
+                        <span id="ppp-price-heading">—</span>
+                    </h3>
+                    <p class="ppp-prices__sub" data-i18n="pppPricesHint">Typiske lokale priser per produkt (estimat)</p>
+                    <div id="ppp-price-list" class="ppp-price-list"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="quick-amounts">
+            <button type="button" class="quick-btn" data-amount="50">50</button>
+            <button type="button" class="quick-btn" data-amount="100">100</button>
+            <button type="button" class="quick-btn" data-amount="500">500</button>
+            <button type="button" class="quick-btn" data-amount="1000">1 000</button>
+        </section>
+
+        <section class="stats-card" data-i18n-aria="statsAria" aria-label="Live markedsstatistikk">
+            <div class="stats-header">
+                <div>
+                    <h2 class="stats-title" data-i18n="statsTitle">Live marked</h2>
+                    <p class="stats-subtitle" data-i18n="statsSubtitle">USD-krysskurser og 7-dagers bevegelse</p>
+                </div>
+                <span id="stats-updated" class="stats-timestamp">—</span>
+            </div>
+
+            <div class="stats-summary">
+                <div class="summary-tile">
+                    <span class="summary-value" id="stat-count">—</span>
+                    <span class="summary-label" data-i18n="statCurrencies">Valutaer</span>
+                </div>
+                <div class="summary-tile">
+                    <span class="summary-value" id="stat-strongest">—</span>
+                    <span class="summary-label" data-i18n="statStrongest">Sterkest 7d</span>
+                </div>
+                <div class="summary-tile">
+                    <span class="summary-value" id="stat-weakest">—</span>
+                    <span class="summary-label" data-i18n="statWeakest">Svakest 7d</span>
+                </div>
+            </div>
+
+            <div id="stats-list" class="stats-list">
+                <div class="stats-skeleton" aria-hidden="true"></div>
+                <div class="stats-skeleton" aria-hidden="true"></div>
+                <div class="stats-skeleton" aria-hidden="true"></div>
+                <div class="stats-skeleton" aria-hidden="true"></div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p data-i18n="footer">Live kurser oppdateres hvert 15. sekund · open.er-api.com</p>
+        </footer>
+    </main>
+
+    <div id="auth-modal" class="modal" hidden>
+        <div id="auth-modal-backdrop" class="modal__backdrop"></div>
+        <div class="modal__panel glass-card" role="dialog" aria-labelledby="auth-modal-title">
+            <button type="button" id="auth-close-btn" class="modal__close" aria-label="Close">×</button>
+            <h2 id="auth-modal-title" class="modal__title" data-i18n="authModalTitle">Your travel vault</h2>
+            <div class="auth-tabs">
+                <button type="button" id="auth-tab-signin" class="auth-tab auth-tab--active" data-i18n="authSignIn">Sign In</button>
+                <button type="button" id="auth-tab-signup" class="auth-tab" data-i18n="authSignUp">Sign Up</button>
+            </div>
+            <p id="auth-error" class="auth-error"></p>
+            <form id="auth-signin-form" class="auth-form">
+                <label class="field-label" for="auth-email-in">Email</label>
+                <input type="email" id="auth-email-in" class="currency-search" required autocomplete="email">
+                <label class="field-label" for="auth-password-in">Password</label>
+                <input type="password" id="auth-password-in" class="currency-search" required autocomplete="current-password">
+                <button type="submit" class="btn-primary" data-i18n="authSignIn">Sign In</button>
+            </form>
+            <form id="auth-signup-form" class="auth-form" hidden>
+                <label class="field-label" for="auth-name-up" data-i18n="authName">Display name</label>
+                <input type="text" id="auth-name-up" class="currency-search" autocomplete="name">
+                <label class="field-label" for="auth-email-up">Email</label>
+                <input type="email" id="auth-email-up" class="currency-search" required autocomplete="email">
+                <label class="field-label" for="auth-password-up">Password</label>
+                <input type="password" id="auth-password-up" class="currency-search" required minlength="6" autocomplete="new-password">
+                <button type="submit" class="btn-primary" data-i18n="authSignUp">Sign Up</button>
+            </form>
+            <button type="button" id="auth-signout-btn" class="btn-secondary auth-signout" data-i18n="authSignOut" hidden>Log out</button>
+        </div>
+    </div>
+
+    <script src="currencies.js?v=16"></script>
+    <script src="languages.js?v=16"></script>
+    <script src="shared.js?v=26"></script>
+    <script src="geocoding.js?v=26"></script>
+    <script src="theme.js?v=29"></script>
+    <script src="i18n.js?v=29"></script>
+    <script src="auth.js?v=27"></script>
+    <script src="vault.js?v=27"></script>
+    <script src="survival.js?v=27"></script>
+    <script src="fx-watchdog.js?v=27"></script>
+    <script src="vat-refund.js?v=27"></script>
+    <script src="app.js?v=29"></script>
+</body>
+</html>

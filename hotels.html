@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>True Cost Stays · Konverter</title>
+    <script>
+        (function () {
+            var t = 'dark';
+            try {
+                var s = localStorage.getItem('konverter-theme');
+                if (s === 'light' || s === 'dark') t = s;
+                else if (window.matchMedia('(prefers-color-scheme: light)').matches) t = 'light';
+            } catch (e) { /* ignore */ }
+            document.documentElement.setAttribute('data-theme', t);
+            document.documentElement.style.colorScheme = t;
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=32">
+</head>
+<body data-page="hotels">
+    <div class="bg-gradient"></div>
+    <div class="bg-grid"></div>
+
+    <main class="app app--wide">
+        <header class="header">
+            <div class="header__top">
+                <nav class="dash-nav dash-nav--compact">
+                    <a href="index.html" class="dash-nav__link">⇄</a>
+                    <a href="hotels.html" class="dash-nav__link dash-nav__link--active">🏨</a>
+                    <a href="map.html" class="dash-nav__link">🗺</a>
+                </nav>
+                <div class="header__top-actions">
+                    <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+                        <span class="theme-toggle__icon theme-toggle__icon--dark" aria-hidden="true">🌙</span>
+                        <span class="theme-toggle__icon theme-toggle__icon--light" aria-hidden="true">☀️</span>
+                    </button>
+                    <div class="lang-picker">
+                        <label for="lang-select" class="lang-picker__label" data-i18n="langLabel">Språk</label>
+                        <select id="lang-select" class="lang-select" aria-label="Language"></select>
+                    </div>
+                </div>
+            </div>
+            <h1 class="dash-page-title" data-i18n="hotelPageTitle">True Cost Stays</h1>
+            <p class="tagline" data-i18n="hotelPageSub">Compare deals · true daily burn · nomad intelligence</p>
+        </header>
+
+        <!-- Trivago-style search & filter bar -->
+        <section class="hotel-search-bar glass-card">
+            <div class="hotel-search-bar__row hotel-search-bar__row--primary">
+                <div class="hotel-search-bar__field hotel-search-bar__field--city">
+                    <label class="field-label" for="hotel-city-search" data-i18n="citySearchLabel">Destination</label>
+                    <div class="city-suggest">
+                        <input type="search" id="hotel-city-search" class="currency-search"
+                            data-i18n-placeholder="citySearchPlaceholder" placeholder="Search any city…"
+                            autocomplete="off" aria-controls="hotel-city-suggestions">
+                        <div id="hotel-city-suggestions" class="city-suggest__list" role="listbox" hidden></div>
+                    </div>
+                </div>
+                <div class="hotel-search-bar__field">
+                    <label class="field-label" for="hotel-checkin" data-i18n="hotelCheckIn">Check-in</label>
+                    <input type="date" id="hotel-checkin" class="currency-search hotel-date-input">
+                </div>
+                <div class="hotel-search-bar__field">
+                    <label class="field-label" for="hotel-checkout" data-i18n="hotelCheckOut">Check-out</label>
+                    <input type="date" id="hotel-checkout" class="currency-search hotel-date-input">
+                </div>
+                <div class="hotel-search-bar__field hotel-search-bar__field--guests">
+                    <label class="field-label" for="hotel-guests" data-i18n="hotelGuests">Guests</label>
+                    <select id="hotel-guests" class="currency-select">
+                        <option value="1">1</option>
+                        <option value="2" selected>2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="hotel-search-bar__row hotel-search-bar__row--currency">
+                <div class="hotel-search-bar__field">
+                    <label class="field-label" for="hotel-home" data-i18n="hotelHome">Home currency</label>
+                    <select id="hotel-home" class="currency-select"></select>
+                </div>
+                <div class="hotel-search-bar__field">
+                    <label class="field-label" for="hotel-dest" data-i18n="hotelDest">Destination currency</label>
+                    <select id="hotel-dest" class="currency-select"></select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filter pills & sliders -->
+        <section class="hotel-filter-bar glass-card">
+            <div class="hotel-filter-bar__section">
+                <p class="field-label" data-i18n="hotelStayType">Stay type</p>
+                <div class="hotel-filters" id="hotel-stay-filters">
+                    <button type="button" class="hotel-filter hotel-filter--active" data-stay-type="all" data-i18n="hotelFilterAll">All <span class="filter-count" data-count-for="all">0</span></button>
+                    <button type="button" class="hotel-filter" data-stay-type="luxury">✨ <span data-i18n="hotelFilterLuxury">Luxury</span> <span class="filter-count" data-count-for="luxury">0</span></button>
+                    <button type="button" class="hotel-filter" data-stay-type="boutique">🎨 <span data-i18n="hotelFilterBoutique">Boutique</span> <span class="filter-count" data-count-for="boutique">0</span></button>
+                    <button type="button" class="hotel-filter" data-stay-type="apartment">🏠 <span data-i18n="hotelFilterApartment">Apartments</span> <span class="filter-count" data-count-for="apartment">0</span></button>
+                    <button type="button" class="hotel-filter" data-stay-type="hostel">🛏️ <span data-i18n="hotelFilterHostel">Hostels</span> <span class="filter-count" data-count-for="hostel">0</span></button>
+                    <button type="button" class="hotel-filter" data-stay-type="coliving">💻 <span data-i18n="hotelFilterColiving">Co-living</span> <span class="filter-count" data-count-for="coliving">0</span></button>
+                </div>
+            </div>
+
+            <div class="hotel-filter-bar__section hotel-filter-bar__section--slider">
+                <div class="hotel-slider-header">
+                    <label class="field-label" for="hotel-price-max" data-i18n="hotelPriceFilter">Max price</label>
+                    <div class="hotel-slider-mode">
+                        <button type="button" class="hotel-slider-mode__btn hotel-slider-mode__btn--active" data-price-mode="burn" data-i18n="hotelFilterBurn">True burn</button>
+                        <button type="button" class="hotel-slider-mode__btn" data-price-mode="nightly" data-i18n="hotelFilterNightly">Nightly</button>
+                    </div>
+                </div>
+                <input type="range" id="hotel-price-max" class="map-range" min="50" max="2500" value="2500">
+                <span id="hotel-price-val" class="hotel-slider-val">—</span>
+            </div>
+
+            <div class="hotel-filter-bar__section">
+                <p class="field-label" data-i18n="hotelNomadFilters">Nomad filters</p>
+                <div class="hotel-filters hotel-filters--checkboxes" id="hotel-amenity-filters">
+                    <label class="hotel-checkbox">
+                        <input type="checkbox" id="filter-wifi" data-amenity="wifi">
+                        <span data-i18n="hotelFilterWifiVerified">High-speed Wi-Fi Verified</span>
+                        <span class="filter-count" data-count-for="wifi">0</span>
+                    </label>
+                    <label class="hotel-checkbox">
+                        <input type="checkbox" id="filter-cafe" data-amenity="cafe">
+                        <span data-i18n="hotelFilterCoffee">Walkable to Specialty Coffee</span>
+                        <span class="filter-count" data-count-for="cafe">0</span>
+                    </label>
+                    <label class="hotel-checkbox">
+                        <input type="checkbox" id="filter-cowork" data-amenity="cowork">
+                        <span data-i18n="hotelFilterCoworkNearby">Co-working Space Nearby</span>
+                        <span class="filter-count" data-count-for="cowork">0</span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results -->
+        <section class="hotel-results glass-card">
+            <div class="hotel-results-toolbar" id="hotel-results-toolbar">
+                <div class="hotel-results-toolbar__left">
+                    <span id="resultsCount" class="hotel-results-count">Showing 0 stays</span>
+                    <div class="hotel-sort-pills" role="group" aria-label="Quick sort">
+                        <button type="button" class="hotel-sort-pill" data-sort="recommendation" data-i18n="hotelSortRecommend">⚡ Our Recommendation</button>
+                        <button type="button" class="hotel-sort-pill active-pill" data-sort="burn_asc" data-i18n="hotelSortCheapest">💵 Cheapest Total</button>
+                        <button type="button" class="hotel-sort-pill" data-sort="rating_desc" data-i18n="hotelSortTopRated">⭐ Top Rated</button>
+                        <button type="button" class="hotel-sort-pill" data-sort="discount_desc" data-i18n="hotelSortBestFx">🔥 Best FX Deal</button>
+                    </div>
+                </div>
+                <div class="hotel-results-toolbar__right">
+                    <label class="hotel-sort-select-wrap">
+                        <span class="field-label" data-i18n="hotelSortBy">Sort by</span>
+                        <select id="hotelSortSelect" class="currency-select" aria-label="Sort stays">
+                            <option value="burn_asc" selected data-i18n="hotelSortBurnAsc">Lowest True Daily Burn</option>
+                            <option value="price_asc" data-i18n="hotelSortPriceAsc">Lowest Nightly Room Rate</option>
+                            <option value="price_desc" data-i18n="hotelSortPriceDesc">Highest Price / Luxury First</option>
+                            <option value="rating_desc" data-i18n="hotelSortRatingDesc">Guest Rating &amp; Stars</option>
+                            <option value="discount_desc" data-i18n="hotelSortDiscountDesc">Biggest Discount Savings</option>
+                            <option value="distance_asc" data-i18n="hotelSortDistanceAsc">Closest to City Center</option>
+                            <option value="nomad_score" data-i18n="hotelSortNomadScore">Highest Nomad Score</option>
+                            <option value="recommendation" data-i18n="hotelSortRecommend">Our Recommendation</option>
+                        </select>
+                    </label>
+                    <div class="hotel-view-toggle" role="group" aria-label="View layout">
+                        <button type="button" class="hotel-view-btn hotel-view-btn--active" data-view="grid" aria-pressed="true" title="Grid view">▦ <span data-i18n="hotelViewGrid">Grid</span></button>
+                        <button type="button" class="hotel-view-btn" data-view="compact" aria-pressed="false" title="Compact list">☰ <span data-i18n="hotelViewCompact">List</span></button>
+                    </div>
+                </div>
+            </div>
+            <div id="hotel-results-meta" class="hotel-results-meta"></div>
+            <div id="hotel-list" class="hotel-list hotel-list--trivago">
+                <div class="hotel-skeleton hotel-skeleton--trivago"></div>
+            </div>
+        </section>
+    </main>
+
+    <script src="currencies.js?v=20"></script>
+    <script src="languages.js?v=20"></script>
+    <script src="shared.js?v=20"></script>
+    <script src="geocoding.js?v=21"></script>
+    <script src="i18n.js?v=29"></script>
+    <script src="theme.js?v=29"></script>
+    <script src="hotels.js?v=29"></script>
+    <script>
+        initLanguagePicker();
+        applyStaticTranslations();
+        initThemeToggle();
+        initHotelsPage();
+    </script>
+</body>
+</html>
