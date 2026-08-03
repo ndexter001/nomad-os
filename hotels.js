@@ -1323,7 +1323,6 @@ function initHotelsPage() {
 
 function onLanguageChange() {
     updatePriceSliderLabel();
-    if (typeof updateThemeToggleUI === 'function') updateThemeToggleUI();
     if (hotelState.enrichedCache?.listings?.length || hotelState.destCode) {
         applyFiltersAndRender({ animate: false });
     }

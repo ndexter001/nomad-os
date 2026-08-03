@@ -19,7 +19,7 @@ Open [http://localhost:8080](http://localhost:8080). Serve over HTTP — `file:/
 |-----------|-----------------|---------|
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Stays](docs/screenshots/stays.png) | ![Map](docs/screenshots/map.png) |
 
-Drop PNGs into `docs/screenshots/` (`dashboard.png`, `stays.png`, `map.png`). Dark and light theme captures both look good in the README.
+Drop PNGs into `docs/screenshots/` (`dashboard.png`, `stays.png`, `map.png`).
 
 ## What you get
 
@@ -40,12 +40,11 @@ Drop PNGs into `docs/screenshots/` (`dashboard.png`, `stays.png`, `map.png`). Da
 - **VAT Refund Calculator** — estimated tax-back and airport checklist per country
 - **Nomad Survival Kit** — SIM prices, tipping norms, VAT rates, cash vs card
 - **Personal Budget Vault** — saved trips, subscriptions, runway (sign-in required)
-- **Dark / light theme** — follows system preference, persisted locally
 - **5 languages** — English, Deutsch, Español, Français, Norsk (browser locale auto-detect, English fallback)
 
 ## Tech stack
 
-Vanilla HTML, CSS, and JavaScript. Glassmorphism UI with CSS custom properties for theming. All data fetched client-side from public APIs.
+Vanilla HTML, CSS, and JavaScript. Dark glassmorphism UI with CSS custom properties. All data fetched client-side from public APIs.
 
 ## Project layout
 
@@ -53,7 +52,7 @@ Vanilla HTML, CSS, and JavaScript. Glassmorphism UI with CSS custom properties f
 index.html          Dashboard
 hotels.html         True Cost Stays
 map.html            COL & weather map
-styles.css          UI, themes, responsive layout
+styles.css          Dark UI, responsive layout
 shared.js           FX, PPP, travel tiers, payment & runway math
 app.js              Dashboard logic
 hotels.js           Stays search, sorting, booking links
@@ -64,7 +63,6 @@ fx-watchdog.js      Rate trends & alerts
 vat-refund.js       VAT refund UI
 vault.js            Budget vault (localStorage)
 auth.js             Auth (local demo · Firebase · Supabase ready)
-theme.js            Theme toggle
 i18n.js             Translations
 currencies.js       166 currency definitions
 languages.js        Locale config
@@ -88,7 +86,6 @@ Default mode is **local demo auth** — accounts live in `localStorage`. To use 
 
 | Key | Purpose |
 |-----|---------|
-| `nomad-os-theme` | `light` or `dark` |
 | `nomad-os-lang` | Active locale: `en` · `de` · `es` · `fr` · `no` |
 | `nomad-os-auth-session` | Signed-in session |
 | `nomad-os-local-users` | Demo auth user registry |
@@ -96,9 +93,9 @@ Default mode is **local demo auth** — accounts live in `localStorage`. To use 
 | `nomad-os-rate-alerts` | FX watchdog alerts |
 | `nomad-os-selected-city` | Last selected destination |
 
-## Theming
+## UI
 
-Set via `data-theme="dark"|"light"` on `<html>`. Variables in `styles.css` control colors, cards, inputs, and shadows. An inline head script prevents theme flash on load.
+Fixed dark theme — glass cards on black/indigo with accent `#818cf8`. CSS variables in `styles.css` control colors, cards, inputs, and shadows.
 
 ## Deploy
 

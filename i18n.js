@@ -1,8 +1,8 @@
 const I18N = {
     no: {
-        pageTitle: 'Nomad OS',
+        pageTitle: 'Nomad OS · Reise-Finans-OS',
         logo: 'Nomad OS',
-        tagline: '166 valutaer · hele verden · live kurser · PPP',
+        tagline: 'Reise-OS · 166 valutaer · live kurser · PPP',
         travelStyleLabel: 'Reisestil',
         travelStyleBackpacker: '🎒 Backpacker',
         travelStyleNomad: '💻 Digital Nomad',
@@ -334,9 +334,9 @@ const I18N = {
         insightWorse: (pct, to, from, amt, real) => `Kjøpekraften faller ~${pct}% i ${to} sammenlignet med ${from}. Høyere levekostnader og premium prising spiser opp fordelen fra valutakursen — ${amt} føles mer som ${real} i lokal kjøpekraft.`
     },
     en: {
-        pageTitle: 'Nomad OS',
+        pageTitle: 'Nomad OS · Travel Financial OS',
         logo: 'Nomad OS',
-        tagline: '166 currencies · worldwide · live rates · PPP',
+        tagline: 'Travel financial OS · 166 currencies · live rates · PPP',
         travelStyleLabel: 'Travel style',
         travelStyleBackpacker: '🎒 Backpacker',
         travelStyleNomad: '💻 Digital Nomad',
@@ -668,9 +668,9 @@ const I18N = {
         insightWorse: (pct, to, from, amt, real) => `Purchasing power drops ~${pct}% in ${to} compared to ${from}. Higher living costs eat into the exchange rate advantage — ${amt} feels more like ${real} in local terms.`
     },
     de: {
-        pageTitle: 'Nomad OS',
+        pageTitle: 'Nomad OS · Reise-Finanz-OS',
         logo: 'Nomad OS',
-        tagline: '166 Währungen · Live-Kurse · PPP-Lebensindex',
+        tagline: 'Reise-Finanz-OS · 166 Währungen · Live-Kurse · PPP',
         langLabel: 'Sprache',
         searchLabel: 'Währungen suchen',
         searchPlaceholder: 'Code oder Name — z.B. NOK, Yen, Real…',
@@ -788,9 +788,9 @@ const I18N = {
         insightWorse: (pct, to, from, amt, real) => `Kaufkraft sinkt ~${pct}% in ${to} vs. ${from}. ${amt} fühlt sich eher wie ${real} an.`
     },
     es: {
-        pageTitle: 'Nomad OS',
+        pageTitle: 'Nomad OS · OS Financiero de Viaje',
         logo: 'Nomad OS',
-        tagline: '166 monedas · tipos en vivo · índice PPP',
+        tagline: 'OS financiero de viaje · 166 monedas · tipos en vivo · PPP',
         langLabel: 'Idioma',
         searchLabel: 'Buscar monedas',
         searchPlaceholder: 'Escribe código o nombre — ej. NOK, Yen, Real…',
@@ -908,9 +908,9 @@ const I18N = {
         insightWorse: (pct, to, from, amt, real) => `El poder adquisitivo baja ~${pct}% en ${to} vs. ${from}. ${amt} se siente más como ${real}.`
     },
     fr: {
-        pageTitle: 'Nomad OS',
+        pageTitle: 'Nomad OS · OS Financier Voyage',
         logo: 'Nomad OS',
-        tagline: '166 devises · taux en direct · indice PPP',
+        tagline: 'OS financier voyage · 166 devises · taux en direct · PPP',
         langLabel: 'Langue',
         searchLabel: 'Rechercher des devises',
         searchPlaceholder: 'Code ou nom — ex. NOK, Yen, Real…',

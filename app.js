@@ -1211,12 +1211,10 @@ function onLanguageChange() {
     }
     const guestHint = document.getElementById('auth-guest-hint');
     if (guestHint && !guestHint.hidden) guestHint.textContent = t('vaultGuestHint');
-    if (typeof updateThemeToggleUI === 'function') updateThemeToggleUI();
 }
 
 initLanguagePicker();
 applyStaticTranslations();
-initThemeToggle();
 populateSelects();
 updateTimestamps();
 updateConversion();

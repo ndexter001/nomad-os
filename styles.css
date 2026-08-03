@@ -6,8 +6,7 @@
     padding: 0;
 }
 
-:root,
-[data-theme="dark"] {
+:root {
     --bg: #0a0b0f;
     --surface: rgba(255, 255, 255, 0.04);
     --surface-hover: rgba(255, 255, 255, 0.07);
@@ -64,63 +63,6 @@
     --radius: 16px;
     --radius-sm: 10px;
     color-scheme: dark;
-}
-
-[data-theme="light"] {
-    --bg: #d4ddf2;
-    --surface: #ffffff;
-    --surface-hover: rgba(15, 23, 42, 0.05);
-    --border: rgba(15, 23, 42, 0.1);
-    --text: #0f172a;
-    --text-muted: #64748b;
-    --accent: #6366f1;
-    --accent-rgb: 99, 102, 241;
-    --accent-dim: rgba(99, 102, 241, 0.12);
-    --accent-glow: rgba(99, 102, 241, 0.2);
-    --accent-border: rgba(99, 102, 241, 0.32);
-    --accent-border-strong: rgba(99, 102, 241, 0.42);
-    --up: #0284c7;
-    --up-dim: rgba(2, 132, 199, 0.1);
-    --down: #dc2626;
-    --down-dim: rgba(220, 38, 38, 0.08);
-    --glass-bg: #ffffff;
-    --glass-bg-strong: #ffffff;
-    --input-bg: rgba(255, 255, 255, 0.96);
-    --input-bg-deep: #f8fafc;
-    --surface-inset: rgba(15, 23, 42, 0.04);
-    --surface-overlay: rgba(255, 255, 255, 0.98);
-    --border-glass: rgba(99, 102, 241, 0.14);
-    --border-inset: rgba(15, 23, 42, 0.06);
-    --shadow: rgba(99, 102, 241, 0.1);
-    --shadow-lg: rgba(99, 102, 241, 0.16);
-    --grid-line: rgba(99, 102, 241, 0.06);
-    --gradient-accent: rgba(99, 102, 241, 0.16);
-    --gradient-indigo: rgba(129, 140, 248, 0.12);
-    --modal-backdrop: rgba(15, 23, 42, 0.45);
-    --select-option-bg: #ffffff;
-    --select-option-text: #0f172a;
-    --select-optgroup-text: #475569;
-    --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    --toolbar-fade: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 85%, transparent 100%);
-    --pill-bg: rgba(15, 23, 42, 0.05);
-    --pill-bg-hover: rgba(15, 23, 42, 0.09);
-    --count-badge-bg: rgba(15, 23, 42, 0.08);
-    --card-bg: #ffffff;
-    --card-bg-hero: #ffffff;
-    --card-border: rgba(99, 102, 241, 0.18);
-    --card-shadow:
-        0 1px 2px rgba(15, 23, 42, 0.04),
-        0 10px 28px rgba(99, 102, 241, 0.12),
-        0 0 0 1px rgba(99, 102, 241, 0.07);
-    --card-inner: #eef2ff;
-    --card-inner-accent: rgba(99, 102, 241, 0.1);
-    --card-gradient-start: rgba(99, 102, 241, 0.09);
-    --card-gradient-end: rgba(238, 242, 255, 0.98);
-    --chip-bg: rgba(15, 23, 42, 0.06);
-    --tooltip-bg: rgba(255, 255, 255, 0.98);
-    --shimmer-edge: rgba(15, 23, 42, 0.05);
-    --shimmer-mid: rgba(255, 255, 255, 0.85);
-    color-scheme: light;
 }
 
 html {
@@ -251,17 +193,46 @@ body {
     margin-bottom: 0.5rem;
 }
 
+.logo--link {
+    text-decoration: none;
+    color: inherit;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.logo--link:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+}
+
 .logo-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
+    flex-shrink: 0;
     width: 40px;
     height: 40px;
-    background: var(--accent-dim);
-    border: 1px solid rgba(129, 140, 248, 0.3);
     border-radius: 12px;
-    font-size: 1.25rem;
+    object-fit: cover;
+    box-shadow:
+        0 0 0 1px rgba(var(--accent-rgb), 0.18) inset,
+        0 8px 20px rgba(var(--accent-rgb), 0.18);
+}
+
+.logo-icon--mark {
+    width: 28px;
+    height: 28px;
+    padding: 6px;
+    object-fit: contain;
+    background: var(--accent-dim);
+    border: 1px solid rgba(var(--accent-rgb), 0.28);
+    box-shadow: none;
     color: var(--accent);
+}
+
+.logo-icon--nav {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border-radius: 8px;
+    box-shadow: none;
 }
 
 .logo-text {
@@ -269,6 +240,26 @@ body {
     font-weight: 700;
     letter-spacing: -0.03em;
     color: var(--text);
+}
+
+.logo-wordmark {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.2rem;
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+}
+
+.logo-wordmark__nomad {
+    color: var(--text);
+}
+
+.logo-wordmark__os {
+    color: var(--accent);
+    font-weight: 800;
+    letter-spacing: -0.04em;
 }
 
 .tagline {
@@ -2094,11 +2085,53 @@ body {
     font-size: 0.95rem;
 }
 
+.dash-nav__link--brand {
+    overflow: hidden;
+}
+
+.dash-nav__brand-icon {
+    display: block;
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    object-fit: cover;
+}
+
+.dash-page-title-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 0.25rem;
+}
+
+.dash-page-title-row .dash-page-title {
+    margin-bottom: 0;
+}
+
+.header--subpage .logo {
+    margin-bottom: 0.35rem;
+}
+
+.header--subpage .logo-icon {
+    width: 34px;
+    height: 34px;
+}
+
+.header--subpage .logo-wordmark {
+    font-size: 1.15rem;
+}
+
 .dash-nav__link:hover,
 .dash-nav__link--active {
     color: var(--accent);
     border-color: rgba(129, 140, 248, 0.35);
     background: var(--accent-dim);
+}
+
+.dash-nav__link--brand.dash-nav__link--active,
+.dash-nav__link--brand:hover {
+    background: var(--accent-dim);
+    border-color: rgba(var(--accent-rgb), 0.35);
 }
 
 .dash-nav__link--active:visited,
@@ -3423,14 +3456,9 @@ body {
     color: var(--text);
 }
 
-[data-theme="dark"] .hotel-date-input,
-[data-theme="dark"] input[type="date"] {
+.hotel-date-input,
+input[type="date"] {
     color-scheme: dark;
-}
-
-[data-theme="light"] .hotel-date-input,
-[data-theme="light"] input[type="date"] {
-    color-scheme: light;
 }
 
 .hotel-filter-bar {
@@ -4653,161 +4681,9 @@ body {
     color: var(--accent);
 }
 
-[data-theme="light"] .map-nomad-tooltip {
-    background: rgba(255, 255, 255, 0.96) !important;
-    box-shadow: 0 8px 24px var(--shadow-lg) !important;
-}
-
-[data-theme="light"] .lang-select,
-[data-theme="light"] .currency-select {
-    color-scheme: light;
-    background-color: var(--input-bg-deep);
-    border-color: var(--border);
-    color: var(--text);
-    box-shadow: 0 1px 2px var(--shadow);
-}
-
-[data-theme="light"] .lang-select option,
-[data-theme="light"] .currency-select option,
-[data-theme="light"] .currency-select optgroup {
-    background-color: var(--select-option-bg);
-    color: var(--select-option-text);
-}
-
-[data-theme="light"] .hotel-results-toolbar .currency-select,
-[data-theme="light"] #hotelSortSelect,
-[data-theme="light"] .hotel-search-bar .currency-select,
-[data-theme="light"] .hotel-filter-bar .currency-select {
-    color-scheme: light;
-    background-color: #ffffff;
-    color: var(--text);
-    border: 1px solid rgba(15, 23, 42, 0.14);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-}
-
-[data-theme="light"] .hotel-sort-pill,
-[data-theme="light"] .hotel-view-btn {
-    background: var(--pill-bg);
-    border-color: rgba(15, 23, 42, 0.12);
-    color: var(--text-muted);
-}
-
-[data-theme="light"] .hotel-sort-pill:hover,
-[data-theme="light"] .hotel-view-btn:hover {
-    background: var(--pill-bg-hover);
-    color: var(--text);
-}
-
-[data-theme="dark"] .lang-select,
-[data-theme="dark"] .currency-select {
+.lang-select,
+.currency-select {
     color-scheme: dark;
-}
-
-/* ── Theme toggle ── */
-.theme-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    padding: 0;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--input-bg);
-    color: var(--text);
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s;
-    flex-shrink: 0;
-}
-
-.theme-toggle:hover {
-    border-color: var(--accent-border);
-    background: var(--accent-dim);
-    color: var(--accent);
-}
-
-.theme-toggle__icon {
-    font-size: 1rem;
-    line-height: 1;
-}
-
-.theme-toggle__icon--light {
-    display: none;
-}
-
-[data-theme="light"] .theme-toggle__icon--dark {
-    display: none;
-}
-
-[data-theme="light"] .theme-toggle__icon--light {
-    display: inline;
-}
-
-[data-theme="light"] .city-suggest__list,
-[data-theme="light"] .glass-card,
-[data-theme="light"] .converter-card,
-[data-theme="light"] .stats-card,
-[data-theme="light"] .ppp-deep-insights,
-[data-theme="light"] .hotel-card,
-[data-theme="light"] .map-sidebar {
-    box-shadow: var(--card-shadow);
-}
-
-[data-theme="light"] .stats-card,
-[data-theme="light"] .map-popup,
-[data-theme="light"] .leaflet-popup-content-wrapper {
-    background: var(--card-bg) !important;
-    color: var(--text) !important;
-}
-
-[data-theme="light"] .greeting-banner {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(238, 242, 255, 0.98));
-    border-color: rgba(99, 102, 241, 0.22);
-}
-
-[data-theme="light"] .hotel-card--trivago {
-    background: var(--card-bg);
-    border-color: var(--card-border);
-    overflow: hidden;
-}
-
-[data-theme="light"] .hotel-card__body {
-    background: var(--card-bg);
-}
-
-[data-theme="light"] .destination-weather-card--error {
-    background: linear-gradient(145deg, rgba(220, 38, 38, 0.06) 0%, var(--card-gradient-end) 55%);
-}
-
-[data-theme="light"] .skeleton-card,
-[data-theme="light"] .hotel-skeleton {
-    background: linear-gradient(90deg, var(--surface-inset) 25%, var(--shimmer-mid) 50%, var(--surface-inset) 75%);
-}
-
-[data-theme="light"] .stats-title,
-[data-theme="light"] .summary-value,
-[data-theme="light"] .stat-row,
-[data-theme="light"] .stat-row__name,
-[data-theme="light"] .stat-row__rate,
-[data-theme="light"] .tableau-row,
-[data-theme="light"] .tableau-row__name,
-[data-theme="light"] .tableau-row__price,
-[data-theme="light"] .market-card__title,
-[data-theme="light"] .market-card__price,
-[data-theme="light"] .hero-stats__price,
-[data-theme="light"] .logo-text,
-[data-theme="light"] .dash-page-title,
-[data-theme="light"] .ppp-deep-insights__title,
-[data-theme="light"] .finance-card__title,
-[data-theme="light"] .nomad-runway-card__title,
-[data-theme="light"] .vault-panel__title,
-[data-theme="light"] .survival-card__title,
-[data-theme="light"] .greeting-banner__text,
-[data-theme="light"] .hotel-card__name,
-[data-theme="light"] .modal__title,
-[data-theme="light"] .ticker-item__price,
-[data-theme="light"] .fx-alert-item {
-    color: var(--text);
 }
 
 @media (max-width: 640px) {
