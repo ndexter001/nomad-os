@@ -13,7 +13,7 @@
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon.svg">
     <meta name="theme-color" content="#0a0b0f">
-    <link rel="stylesheet" href="styles.css?v=39">
+    <link rel="stylesheet" href="styles.css?v=41">
 </head>
 <body>
     <div class="bg-gradient"></div>
@@ -41,7 +41,7 @@
                 </div>
             </div>
             <a href="index.html" class="logo logo--link" aria-label="Nomad OS">
-                <img src="icons/icon.svg" alt="" class="logo-icon" width="40" height="40">
+                <img src="icons/icon.svg" alt="" class="logo-icon float-slow" width="40" height="40">
                 <span class="logo-wordmark" aria-hidden="true">
                     <span class="logo-wordmark__nomad">Nomad</span>
                     <span class="logo-wordmark__os">OS</span>
@@ -56,20 +56,20 @@
             <div class="hero-destination__content">
                 <p id="hero-greeting" class="hero-destination__greeting">Welcome!</p>
                 <h2 id="hero-city-name" class="hero-destination__city display-heading">Ready for your next adventure?</h2>
-                <p id="hero-weather-badge" class="hero-destination__badge">—</p>
+                <p id="hero-weather-badge" class="hero-destination__badge float-slow float-delay-2">—</p>
                 <div id="hero-vibe-badges" class="hero-destination__vibes" aria-label="Destination vibes"></div>
             </div>
         </section>
 
         <section id="welcome-empty-state" class="welcome-empty glass-card glass-card--glow fade-in-up" aria-label="Get started">
-            <div class="welcome-empty__icon" aria-hidden="true">🌍</div>
+            <div class="welcome-empty__icon float-slow" aria-hidden="true">🌍</div>
             <h2 class="welcome-empty__title" data-i18n="welcomeEmptyTitle">Ready for your next adventure?</h2>
             <p class="welcome-empty__sub" data-i18n="welcomeEmptySub">Search any city above or pick a recommended nomad hotspot to calculate your true daily burn rate.</p>
             <div class="welcome-empty__pills" role="group" aria-label="Quick start destinations">
-                <button type="button" class="welcome-pill" data-hotspot="tokyo">🇯🇵 Tokyo</button>
-                <button type="button" class="welcome-pill" data-hotspot="oslo">🇳🇴 Oslo</button>
-                <button type="button" class="welcome-pill" data-hotspot="bangkok">🇹🇭 Bangkok</button>
-                <button type="button" class="welcome-pill" data-hotspot="barcelona">🇪🇸 Barcelona</button>
+                <button type="button" class="welcome-pill float-medium float-delay-1" data-hotspot="tokyo">🇯🇵 Tokyo</button>
+                <button type="button" class="welcome-pill float-slow float-delay-2" data-hotspot="oslo">🇳🇴 Oslo</button>
+                <button type="button" class="welcome-pill float-medium float-delay-3" data-hotspot="bangkok">🇹🇭 Bangkok</button>
+                <button type="button" class="welcome-pill float-slow float-delay-4" data-hotspot="barcelona">🇪🇸 Barcelona</button>
             </div>
         </section>
 
@@ -143,7 +143,7 @@
                     <input
                         type="text"
                         id="to-amount"
-                        class="amount-input amount-output"
+                        class="amount-input amount-output value-ticker"
                         readonly
                         tabindex="-1"
                     >
@@ -151,7 +151,7 @@
             </div>
 
             <div class="rate-bar">
-                <span id="rate-display" class="rate-text"></span>
+                <span id="rate-display" class="rate-text value-ticker"></span>
                 <span id="rate-badge" class="rate-badge rate-badge--loading" data-i18n="badgeLoading">Laster…</span>
             </div>
             <p id="last-updated" class="last-updated"></p>
@@ -168,15 +168,15 @@
                 <div class="payment-optimizer__grid">
                     <div class="payment-optimizer__row">
                         <span data-i18n="paymentPayLocal">Pay in local currency</span>
-                        <strong id="pay-local-amount">—</strong>
+                        <strong id="pay-local-amount" class="value-ticker">—</strong>
                     </div>
                     <div class="payment-optimizer__row payment-optimizer__row--warn">
                         <span data-i18n="paymentDcc">DCC / pay in home currency</span>
-                        <strong id="pay-dcc-amount">—</strong>
+                        <strong id="pay-dcc-amount" class="value-ticker">—</strong>
                     </div>
                     <div class="payment-optimizer__row payment-optimizer__row--save">
                         <span data-i18n="paymentSavings">You save</span>
-                        <strong id="pay-savings-amount">—</strong>
+                        <strong id="pay-savings-amount" class="value-ticker">—</strong>
                     </div>
                 </div>
                 <p id="payment-optimizer-advice" class="payment-optimizer__advice"></p>
@@ -192,8 +192,8 @@
                     <h2 class="nomad-runway-card__title" data-i18n="runwayTitle">Nomad Budget Runway</h2>
                     <p class="nomad-runway-card__sub" data-i18n="runwaySub">How long your funds last · PPP + stay costs</p>
                 </div>
-                <div id="runway-badge" class="nomad-runway-badge">
-                    <span id="runway-days" class="nomad-runway-badge__days">—</span>
+                <div id="runway-badge" class="nomad-runway-badge float-medium">
+                    <span id="runway-days" class="nomad-runway-badge__days value-ticker">—</span>
                     <span class="nomad-runway-badge__unit" data-i18n="runwayDays">days</span>
                 </div>
             </div>
@@ -211,7 +211,7 @@
                 <span id="runway-progress-label" class="runway-progress-label"></span>
             </div>
             <p id="runway-comparison" class="runway-comparison"></p>
-            <p id="runway-detail" class="nomad-runway-detail">—</p>
+            <p id="runway-detail" class="nomad-runway-detail value-ticker">—</p>
             <p class="nomad-runway-hint" data-i18n="runwayHint">Includes styled daily burn (room + food + transit) for your travel tier.</p>
         </section>
 
@@ -227,7 +227,7 @@
                         <button type="button" class="fx-period-btn" data-fx-period="30" data-i18n="fxPeriod30d">30d</button>
                     </div>
                 </header>
-                <p id="fx-current-rate" class="fx-current-rate">—</p>
+                <p id="fx-current-rate" class="fx-current-rate value-ticker">—</p>
                 <p id="fx-trend-text" class="fx-trend-text">—</p>
                 <p id="fx-trend-sentiment" class="fx-trend-sentiment">—</p>
                 <p id="fx-alert-status" class="fx-alert-status" hidden></p>
@@ -322,7 +322,7 @@
                     <h2 class="ppp-deep-insights__title" data-i18n="pppTitle">Kjøpekraft &amp; lokalt leveindeks</h2>
                     <p class="ppp-deep-insights__sub" data-i18n="pppSub">PPP-motor · reell livsstilskraft vs markedsverdi</p>
                 </div>
-                <span id="ppp-rating-badge" class="ppp-rating-badge ppp-rating-badge--neutral" hidden>—</span>
+                <span id="ppp-rating-badge" class="ppp-rating-badge ppp-rating-badge--neutral float-slow" hidden>—</span>
             </div>
 
             <p class="ppp-help">
@@ -338,7 +338,7 @@
                 hidden
             >
                 <div class="destination-weather-card__header">
-                    <div class="destination-weather-card__icon-wrap" id="weather-icon-wrap" aria-hidden="true">
+                    <div class="destination-weather-card__icon-wrap float-slow" id="weather-icon-wrap" aria-hidden="true">
                         <svg class="weather-icon weather-icon--sun" viewBox="0 0 48 48" fill="none">
                             <circle cx="24" cy="24" r="10" stroke="currentColor" stroke-width="2"/>
                             <path d="M24 4v6M24 38v6M4 24h6M38 24h6M9.9 9.9l4.2 4.2M33.9 33.9l4.2 4.2M9.9 38.1l4.2-4.2M33.9 14.1l4.2-4.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -358,7 +358,7 @@
                 <div class="destination-weather-card__metrics" id="weather-metrics">
                     <div class="weather-metric">
                         <span class="weather-metric__label" data-i18n="weatherNow">Nå</span>
-                        <span class="weather-metric__value" id="weather-temp">—</span>
+                        <span class="weather-metric__value value-ticker" id="weather-temp">—</span>
                     </div>
                     <div class="weather-metric">
                         <span class="weather-metric__label" data-i18n="weatherHigh">Høy</span>
@@ -375,7 +375,7 @@
                 </div>
 
                 <div class="destination-weather-card__body">
-                    <span id="weather-mode-badge" class="weather-mode-badge weather-mode-badge--loading" data-i18n="weatherLoading">Henter vær…</span>
+                    <span id="weather-mode-badge" class="weather-mode-badge weather-mode-badge--loading float-medium float-delay-1" data-i18n="weatherLoading">Henter vær…</span>
                     <p id="weather-advice" class="destination-weather-card__advice"></p>
                     <p id="weather-alert" class="destination-weather-card__alert" hidden></p>
                 </div>
@@ -393,17 +393,17 @@
                 <div class="ppp-hero-stats">
                     <div class="ppp-hero-stat">
                         <span class="ppp-hero-stat__label" data-i18n="pppMarketValue">Markedsverdi</span>
-                        <span id="ppp-nominal" class="ppp-hero-stat__value">—</span>
+                        <span id="ppp-nominal" class="ppp-hero-stat__value value-ticker">—</span>
                         <span class="ppp-hero-stat__hint" data-i18n="pppMarketHint">Vekslet beløp</span>
                     </div>
                     <div class="ppp-hero-stat ppp-hero-stat--accent">
                         <span class="ppp-hero-stat__label" data-i18n="pppRealValue">Reell livsstilsverdi</span>
-                        <span id="ppp-real-value" class="ppp-hero-stat__value">—</span>
+                        <span id="ppp-real-value" class="ppp-hero-stat__value value-ticker">—</span>
                         <span id="ppp-real-hint" class="ppp-hero-stat__hint" data-i18n="pppRealHintDefault">PPP justert i utgangsvaluta</span>
                     </div>
                     <div class="ppp-hero-stat">
                         <span class="ppp-hero-stat__label" data-i18n="pppPower">Kjøpekraft</span>
-                        <span id="ppp-gap" class="ppp-hero-stat__value ppp-hero-stat__value--gap">—</span>
+                        <span id="ppp-gap" class="ppp-hero-stat__value ppp-hero-stat__value--gap value-ticker">—</span>
                         <span id="ppp-gap-hint" class="ppp-hero-stat__hint" data-i18n="pppPowerHint">vs markedsverdi</span>
                     </div>
                 </div>
@@ -565,8 +565,8 @@
     <script src="auth.js?v=27"></script>
     <script src="vault.js?v=27"></script>
     <script src="survival.js?v=27"></script>
-    <script src="fx-watchdog.js?v=27"></script>
+    <script src="fx-watchdog.js?v=28"></script>
     <script src="vat-refund.js?v=27"></script>
-    <script src="app.js?v=31"></script>
+    <script src="app.js?v=33"></script>
 </body>
 </html>

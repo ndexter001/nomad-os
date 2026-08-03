@@ -5058,7 +5058,23 @@ a {
     opacity: 0.15;
     pointer-events: none;
     z-index: 0;
-    transition: background 1.4s ease, opacity 1s ease;
+    transition: background 1.4s ease;
+    animation: ambientPulse 12s ease-in-out infinite;
+}
+
+@keyframes ambientPulse {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.12;
+    }
+    50% {
+        transform: translate(30px, -20px) scale(1.1);
+        opacity: 0.2;
+    }
+    100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.12;
+    }
 }
 
 .ambient-glow--a {
@@ -5069,6 +5085,7 @@ a {
 .ambient-glow--b {
     bottom: 6%;
     right: -12%;
+    animation-delay: -6s;
 }
 
 .ambient-glow--low {
@@ -5258,4 +5275,105 @@ a {
 
 .welcome-pill:active {
     transform: translateY(0);
+}
+
+/* ── Animated value tickers ── */
+.value-ticker {
+    font-variant-numeric: tabular-nums;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.value-ticker.is-animating {
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(var(--accent-rgb), 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ambient-glow {
+        animation: none;
+    }
+
+    .value-ticker.is-animating {
+        color: inherit;
+        text-shadow: none;
+    }
+
+    .float-slow,
+    .float-medium {
+        animation: none;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONTINUOUS FLOATING & BREATHING MOTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes floatSlow {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-6px) rotate(1deg);
+    }
+}
+
+@keyframes floatMedium {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-4px) rotate(-1.5deg);
+    }
+}
+
+.float-slow {
+    animation: floatSlow 5s ease-in-out infinite;
+    will-change: transform;
+}
+
+.float-medium {
+    animation: floatMedium 3.5s ease-in-out infinite;
+    will-change: transform;
+}
+
+.float-delay-1 { animation-delay: 0.35s; }
+.float-delay-2 { animation-delay: 0.7s; }
+.float-delay-3 { animation-delay: 1.05s; }
+.float-delay-4 { animation-delay: 1.4s; }
+
+.hero-flag {
+    display: inline-block;
+    font-size: 1.15em;
+    line-height: 1;
+    vertical-align: middle;
+    margin-left: 0.15rem;
+}
+
+.hero-vibe-badge.float-slow,
+.hero-vibe-badge.float-medium {
+    transform-origin: center center;
+}
+
+.destination-weather-card__icon-wrap.float-slow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.destination-weather-card__icon-wrap.float-slow .weather-icon {
+    display: block;
+}
+
+.nomad-runway-badge.float-medium {
+    transform-origin: center center;
+}
+
+.welcome-pill.float-slow,
+.welcome-pill.float-medium {
+    transform-origin: center center;
+}
+
+.welcome-pill.float-slow:hover,
+.welcome-pill.float-medium:hover {
+    animation-play-state: paused;
 }

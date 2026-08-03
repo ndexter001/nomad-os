@@ -56,6 +56,166 @@ function bind(el, type, handler, options) {
     if (el) el.addEventListener(type, handler, options);
 }
 
+/* ── Smooth number tickers ── */
+const _animState = new WeakMap();
+
+function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+}
+
+function prefersReducedMotion() {
+    return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function cancelElementAnimation(element) {
+    const state = _animState.get(element);
+    if (state?.frameId) cancelAnimationFrame(state.frameId);
+}
+
+function setElementDisplay(element, text) {
+    if (!element) return;
+    if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+        element.value = text;
+    } else {
+        element.textContent = text;
+    }
+}
+
+function storeAnimatedValue(element, value) {
+    _animState.set(element, { frameId: null, value });
+}
+
+function getLastAnimatedValue(element, fallback = 0) {
+    const state = _animState.get(element);
+    if (state?.value != null && Number.isFinite(state.value)) return state.value;
+    if (!element) return fallback;
+    const raw = element.tagName === 'INPUT' || element.tagName === 'TEXTAREA'
+        ? element.value
+        : element.textContent;
+    if (!raw || raw === '—') return fallback;
+    const cleaned = String(raw).replace(/[^\d.,-]/g, '').replace(/,/g, '');
+    const num = parseFloat(cleaned);
+    return Number.isFinite(num) ? num : fallback;
+}
+
+/**
+ * Smooth count-up for financial readouts.
+ * @param {HTMLElement} element
+ * @param {number} start
+ * @param {number} end
+ * @param {number} duration ms
+ * @param {{ formatter?: (n:number)=>string, onComplete?: ()=>void, ease?: (t:number)=>number }} options
+ */
+function animateValue(element, start, end, duration = 600, options = {}) {
+    if (!element) return;
+
+    const {
+        formatter = (v) => String(Math.round(v)),
+        onComplete,
+        ease = easeOutCubic
+    } = options;
+
+    cancelElementAnimation(element);
+
+    if (!Number.isFinite(end)) {
+        setElementDisplay(element, '—');
+        element.classList?.remove('is-animating');
+        return;
+    }
+
+    const safeStart = Number.isFinite(start) ? start : end;
+
+    if (prefersReducedMotion() || duration <= 0 || Math.abs(end - safeStart) < 1e-9) {
+        setElementDisplay(element, formatter(end));
+        storeAnimatedValue(element, end);
+        element.classList?.remove('is-animating');
+        onComplete?.();
+        return;
+    }
+
+    element.classList?.add('is-animating');
+    const startTime = performance.now();
+
+    function tick(now) {
+        const progress = Math.min(1, (now - startTime) / duration);
+        const current = safeStart + (end - safeStart) * ease(progress);
+        setElementDisplay(element, formatter(current));
+
+        if (progress < 1) {
+            const frameId = requestAnimationFrame(tick);
+            _animState.set(element, { frameId, value: current });
+        } else {
+            setElementDisplay(element, formatter(end));
+            storeAnimatedValue(element, end);
+            element.classList?.remove('is-animating');
+            onComplete?.();
+        }
+    }
+
+    const frameId = requestAnimationFrame(tick);
+    _animState.set(element, { frameId, value: safeStart });
+}
+
+function animateAmountEl(element, amount, currencyCode, duration = 650) {
+    if (!element) return;
+    animateValue(
+        element,
+        getLastAnimatedValue(element, amount),
+        amount,
+        duration,
+        { formatter: (v) => formatAmount(v, currencyCode) }
+    );
+}
+
+function animateIntegerEl(element, value, duration = 550) {
+    if (!element || !Number.isFinite(value)) {
+        if (element) setElementDisplay(element, '—');
+        return;
+    }
+    animateValue(
+        element,
+        getLastAnimatedValue(element, value),
+        value,
+        duration,
+        { formatter: (v) => String(Math.round(v)) }
+    );
+}
+
+function animateRateEl(element, from, to, rate, duration = 600) {
+    if (!element || !Number.isFinite(rate)) return;
+    const decimals = Math.max(currencyMap[to]?.decimals ?? 2, 4);
+    animateValue(
+        element,
+        getLastAnimatedValue(element, rate),
+        rate,
+        duration,
+        { formatter: (v) => `1 ${from} = ${v.toFixed(decimals)} ${to}` }
+    );
+}
+
+function animateBarWidth(element, endPct, duration = 700) {
+    if (!element || !Number.isFinite(endPct)) return;
+    const start = parseFloat(element.dataset.animPct) || parseFloat(element.style.width) || 0;
+    if (prefersReducedMotion() || duration <= 0) {
+        element.style.width = `${endPct}%`;
+        element.dataset.animPct = String(endPct);
+        return;
+    }
+    const startTime = performance.now();
+    function tick(now) {
+        const progress = Math.min(1, (now - startTime) / duration);
+        const current = start + (endPct - start) * easeOutCubic(progress);
+        element.style.width = `${current}%`;
+        element.dataset.animPct = String(current);
+        if (progress < 1) requestAnimationFrame(tick);
+        else {
+            element.style.width = `${endPct}%`;
+            element.dataset.animPct = String(endPct);
+        }
+    }
+    requestAnimationFrame(tick);
+}
+
 const fromAmount = document.getElementById('from-amount');
 const toAmount = document.getElementById('to-amount');
 const fromCurrency = document.getElementById('from-currency');
@@ -522,9 +682,11 @@ function renderHeroVibeBadges(destCode) {
         heroVibeBadges.innerHTML = '';
         return;
     }
-    heroVibeBadges.innerHTML = badges.map((b) =>
-        `<span class="hero-vibe-badge">${b.icon} ${b.label}</span>`
-    ).join('');
+    heroVibeBadges.innerHTML = badges.map((b, i) => {
+        const floatClass = i % 2 === 0 ? 'float-slow' : 'float-medium';
+        const delay = `float-delay-${(i % 4) + 1}`;
+        return `<span class="hero-vibe-badge ${floatClass} ${delay}">${b.icon} ${b.label}</span>`;
+    }).join('');
 }
 
 function formatHeroWeatherBadge(cityName) {
@@ -581,7 +743,9 @@ function updateHeroDestinationCard() {
     if (city?.name) {
         heroDestinationCard.classList.remove('hero-destination--default');
         if (heroGreeting) {
-            heroGreeting.textContent = `${greeting.text}${flag ? ` ${flag}` : ''}`;
+            heroGreeting.innerHTML = flag
+                ? `${greeting.text} <span class="hero-flag float-slow float-delay-1" aria-hidden="true">${flag}</span>`
+                : greeting.text;
         }
         if (heroCityName) {
             heroCityName.textContent = city.country
@@ -677,10 +841,16 @@ function updatePaymentOptimizer() {
     }
 
     paymentOptimizer.hidden = false;
-    if (payLocalAmount) payLocalAmount.textContent = formatAmount(result.payLocal, to);
-    if (payDccAmount) payDccAmount.textContent = formatAmount(result.dccHomeCharge, from);
+    animateAmountEl(payLocalAmount, result.payLocal, to);
+    animateAmountEl(payDccAmount, result.dccHomeCharge, from);
     if (paySavingsAmount) {
-        paySavingsAmount.textContent = `${formatAmount(result.savingsHome, from)} (~${result.savingsPct.toFixed(1)}%)`;
+        animateValue(
+            paySavingsAmount,
+            getLastAnimatedValue(paySavingsAmount, result.savingsHome),
+            result.savingsHome,
+            650,
+            { formatter: (v) => `${formatAmount(v, from)} (~${result.savingsPct.toFixed(1)}%)` }
+        );
     }
 
     const city = typeof CityContext !== 'undefined' ? CityContext.get() : null;
@@ -720,7 +890,8 @@ function updateNomadRunway() {
     }
 
     if (funds <= 0) {
-        runwayDaysEl.textContent = '—';
+        cancelElementAnimation(runwayDaysEl);
+        setElementDisplay(runwayDaysEl, '—');
         if (runwayDetailEl) {
             runwayDetailEl.textContent = typeof t === 'function' ? t('runwayEnterBudget') : 'Enter a budget.';
         }
@@ -733,20 +904,28 @@ function updateNomadRunway() {
 
     const runway = calcBudgetRunwayDays(funds, fundCur, dest, home, tier);
     if (!runway) {
-        runwayDaysEl.textContent = '—';
+        cancelElementAnimation(runwayDaysEl);
+        setElementDisplay(runwayDaysEl, '—');
         if (runwayDetailEl) {
             runwayDetailEl.textContent = typeof t === 'function' ? t('runwayUnavailable') : 'Unavailable.';
         }
         return;
     }
 
-    runwayDaysEl.textContent = String(runway.days);
+    animateIntegerEl(runwayDaysEl, runway.days, 600);
     if (runwayDetailEl) {
-        const dailyStr = formatAmount(runway.dailyDest, dest);
         const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
-        runwayDetailEl.textContent = typeof t === 'function'
-            ? t('runwayDetail')(runway.days, dailyStr, dest, tierLabel)
-            : `${runway.days} days at ~${dailyStr}/day (${tier} mode)`;
+        animateValue(
+            runwayDetailEl,
+            getLastAnimatedValue(runwayDetailEl, runway.dailyDest),
+            runway.dailyDest,
+            650,
+            {
+                formatter: (v) => (typeof t === 'function'
+                    ? t('runwayDetail')(runway.days, formatAmount(v, dest), dest, tierLabel)
+                    : `${runway.days} days at ~${formatAmount(v, dest)}/day (${tier} mode)`)
+            }
+        );
     }
 
     if (typeof calcRunwayComparison === 'function' && runwayComparisonEl) {
@@ -766,11 +945,19 @@ function updateNomadRunway() {
         const maxDays = 365;
         const pct = Math.min(100, (runway.days / maxDays) * 100);
         runwayProgressWrap.hidden = false;
-        runwayProgressFill.style.width = `${pct}%`;
+        animateBarWidth(runwayProgressFill, pct, 700);
         if (runwayProgressLabel) {
-            runwayProgressLabel.textContent = typeof t === 'function'
-                ? t('runwayProgressLabel')(runway.days, maxDays)
-                : `${runway.days} / ${maxDays} days (1 year scale)`;
+            animateValue(
+                runwayProgressLabel,
+                getLastAnimatedValue(runwayProgressLabel, runway.days),
+                runway.days,
+                600,
+                {
+                    formatter: (v) => (typeof t === 'function'
+                        ? t('runwayProgressLabel')(Math.round(v), maxDays)
+                        : `${Math.round(v)} / ${maxDays} days (1 year scale)`)
+                }
+            );
         }
         runwayProgressWrap.querySelector('[role="progressbar"]')?.setAttribute('aria-valuenow', String(Math.round(pct)));
     }
@@ -823,7 +1010,7 @@ function classifyWeatherMode(temp, rainProb, weathercode) {
 function setWeatherIcon(iconKey, iconClass) {
     if (!weatherIconWrap) return;
     weatherIconWrap.innerHTML = WEATHER_ICONS[iconKey] || WEATHER_ICONS.cloud;
-    weatherIconWrap.className = 'destination-weather-card__icon-wrap';
+    weatherIconWrap.className = 'destination-weather-card__icon-wrap float-slow';
     if (iconClass) weatherIconWrap.classList.add(`destination-weather-card__icon-wrap--${iconClass}`);
 }
 
@@ -950,7 +1137,15 @@ function renderWeatherCard(snapshot) {
     }
 
     if (weatherCity) weatherCity.textContent = `${snapshot.city} · ${snapshot.to}`;
-    if (weatherTemp) weatherTemp.textContent = formatTemp(snapshot.temp);
+    if (weatherTemp) {
+        animateValue(
+            weatherTemp,
+            getLastAnimatedValue(weatherTemp, snapshot.temp),
+            snapshot.temp,
+            500,
+            { formatter: (v) => formatTemp(v) }
+        );
+    }
     if (weatherHigh) weatherHigh.textContent = formatTemp(snapshot.high);
     if (weatherLow) weatherLow.textContent = formatTemp(snapshot.low);
     if (weatherRain) weatherRain.textContent = `${Math.round(snapshot.rainProb)}%`;
@@ -1159,6 +1354,7 @@ function startWeatherRefresh() {
 
 function resetPppPanel(to = '') {
     if (!pppNominal) return;
+    [pppNominal, pppRealValue, pppGap].forEach((el) => el && cancelElementAnimation(el));
     pppNominal.textContent = '—';
     if (pppRealValue) pppRealValue.textContent = '—';
     if (pppRealHint) pppRealHint.textContent = t('pppRealHintDefault');
@@ -1215,11 +1411,26 @@ function updatePurchasingPower() {
     const gap = formatPowerGap(powerPct);
     const rating = getNomadRating(metrics.powerRatio);
 
-    if (pppNominal) pppNominal.textContent = hasMarket ? formatAmount(nominal, to) : t('pppLoading');
-    if (pppRealValue) pppRealValue.textContent = formatAmount(realLifestyle, from);
+    if (pppNominal) {
+        if (hasMarket) animateAmountEl(pppNominal, nominal, to);
+        else pppNominal.textContent = t('pppLoading');
+    }
+    if (pppRealValue) animateAmountEl(pppRealValue, realLifestyle, from);
     if (pppRealHint) pppRealHint.textContent = t('pppRealHint')(formatAmount(realLifestyle, from), from);
     if (pppGap) {
-        pppGap.textContent = gap.text;
+        animateValue(
+            pppGap,
+            getLastAnimatedValue(pppGap, powerPct),
+            powerPct,
+            500,
+            {
+                formatter: (v) => {
+                    if (Math.abs(v) < 1) return t('pppGapParity');
+                    const abs = Math.abs(v).toFixed(1);
+                    return v > 0 ? `+${abs}%` : `−${abs}%`;
+                }
+            }
+        );
         pppGap.className = `ppp-hero-stat__value ppp-hero-stat__value--gap ppp-hero-stat__value--${gap.className}`;
     }
     if (pppGapHint) pppGapHint.textContent = powerPct > 0 ? t('pppGapStretch') : powerPct < 0 ? t('pppGapLower') : t('pppGapNear');
@@ -1247,7 +1458,13 @@ function updatePurchasingPower() {
             const countEl = card.querySelector('[data-ppp-count]');
             if (!countEl) return;
             if (hasMarket && units[unitKey] != null) {
-                countEl.textContent = formatUnitCount(units[unitKey], unitKey);
+                animateValue(
+                    countEl,
+                    getLastAnimatedValue(countEl, units[unitKey]),
+                    units[unitKey],
+                    550,
+                    { formatter: (v) => formatUnitCount(v, unitKey) }
+                );
             } else {
                 countEl.textContent = t('pppLoadingRates');
             }
@@ -1263,7 +1480,7 @@ function updateConversion() {
     const to = toCurrency.value;
 
     if (!from || !to) {
-        toAmount.value = '—';
+        if (toAmount) setElementDisplay(toAmount, '—');
         if (rateDisplay) rateDisplay.textContent = t('selectCurrency');
         updatePurchasingPower();
         return;
@@ -1271,13 +1488,12 @@ function updateConversion() {
 
     try {
         const result = converter.convert(amount, from, to);
-        toAmount.value = formatAmount(result, to);
+        animateAmountEl(toAmount, result, to, 550);
 
         const rate = converter.getRate(from, to);
-        const rateDecimals = Math.max(currencyMap[from]?.decimals ?? 2, 4);
-        if (rateDisplay) rateDisplay.textContent = `1 ${from} = ${rate.toFixed(rateDecimals)} ${to}`;
+        animateRateEl(rateDisplay, from, to, rate, 600);
     } catch {
-        toAmount.value = '—';
+        if (toAmount) setElementDisplay(toAmount, '—');
         if (rateDisplay) rateDisplay.textContent = t('invalidPair');
     }
 
@@ -1547,5 +1763,11 @@ window.NomadOSApp = {
     selectDestinationCity,
     fetchCitySuggestions,
     AppState,
-    updateHeroDestinationCard
+    updateHeroDestinationCard,
+    animateValue,
+    animateAmountEl,
+    animateIntegerEl,
+    animateRateEl,
+    animateBarWidth,
+    getLastAnimatedValue
 };

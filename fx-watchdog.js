@@ -157,9 +157,13 @@ async function updateFxWatchdog() {
 
     const currentRate = converter.getRate(from, to);
     if (rateEl) {
-        const map = typeof getCurrencyMap === 'function' ? getCurrencyMap() : {};
-        const decimals = Math.max(map[to]?.decimals ?? 2, 4);
-        rateEl.textContent = `1 ${from} = ${currentRate.toFixed(decimals)} ${to}`;
+        if (typeof NomadOSApp !== 'undefined' && NomadOSApp.animateRateEl) {
+            NomadOSApp.animateRateEl(rateEl, from, to, currentRate, 600);
+        } else {
+            const map = typeof getCurrencyMap === 'function' ? getCurrencyMap() : {};
+            const decimals = Math.max(map[to]?.decimals ?? 2, 4);
+            rateEl.textContent = `1 ${from} = ${currentRate.toFixed(decimals)} ${to}`;
+        }
     }
 
     if (trendEl) trendEl.textContent = typeof t === 'function' ? t('fxTrendLoading') : 'Loading trend…';
