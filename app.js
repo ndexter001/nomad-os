@@ -1713,14 +1713,6 @@ function initDestinationCitySearch() {
         }
     });
 
-    bind(toCurrency, 'change', () => {
-        const ctx = CityContext.get();
-        if (ctx?.currency && toCurrency && ctx.currency !== toCurrency.value) {
-            CityContext.clear();
-            input.value = '';
-        }
-    });
-
     const saved = CityContext.get();
     if (saved) {
         input.value = saved.label || saved.name;
@@ -1911,17 +1903,21 @@ function updateConversion() {
         if (rateDisplay) rateDisplay.textContent = t('invalidPair');
     }
 
-    updatePurchasingPower();
-    updateDestinationWeather();
-    updatePaymentOptimizer();
-    updateNomadRunway();
-    updateGreetingBanner();
-    if (typeof updateFxWatchdog === 'function') updateFxWatchdog();
-    if (typeof updateVatRefundCalculator === 'function') updateVatRefundCalculator();
-    if (typeof updateSurvival === 'function') updateSurvival();
-    if (typeof updateRetentionWidgets === 'function') updateRetentionWidgets();
-    if (typeof refreshVaultRunway === 'function') refreshVaultRunway();
-    syncAppStateFromUI();
+    try {
+        updatePurchasingPower();
+        updateDestinationWeather();
+        updatePaymentOptimizer();
+        updateNomadRunway();
+        updateGreetingBanner();
+        if (typeof updateFxWatchdog === 'function') updateFxWatchdog();
+        if (typeof updateVatRefundCalculator === 'function') updateVatRefundCalculator();
+        if (typeof updateSurvival === 'function') updateSurvival();
+        if (typeof updateRetentionWidgets === 'function') updateRetentionWidgets();
+        if (typeof refreshVaultRunway === 'function') refreshVaultRunway();
+        syncAppStateFromUI();
+    } catch (err) {
+        console.warn('[Nomad OS] Conversion side-effects failed:', err);
+    }
 }
 
 function formatRate(value, code) {
@@ -2073,14 +2069,69 @@ function applyBootstrapRates() {
 
 function swapCurrencies() {
     if (!fromCurrency || !toCurrency) return;
-    const prevHome = AppState.homeCurrency;
-    AppState.homeCurrency = AppState.targetCurrency;
-    AppState.targetCurrency = prevHome;
+
+    try {
+        const prevFrom = fromCurrency.value;
+        const prevTo = toCurrency.value;
+        if (!prevFrom || !prevTo || prevFrom === prevTo) return;
+
+        fromCurrency.value = prevTo;
+        toCurrency.value = prevFrom;
+        _appStateData.homeCurrency = prevTo;
+        _appStateData.targetCurrency = prevFrom;
+        applyAppStateFxRates();
+        applyAppStatePppMultiplier(prevFrom);
+        updateConversion();
+        renderStayCalculations();
+    } catch (err) {
+        console.warn('[Nomad OS] Currency swap failed:', err);
+    }
+}
+
+function onFromCurrencyChange() {
+    if (!fromCurrency) return;
+    AppState.homeCurrency = fromCurrency.value;
+}
+
+function onToCurrencyChange() {
+    if (!toCurrency) return;
+    AppState.targetCurrency = toCurrency.value;
+
+    const input = $('city-search');
+    const ctx = typeof CityContext !== 'undefined' ? CityContext.get() : null;
+    if (ctx?.currency && ctx.currency !== toCurrency.value) {
+        CityContext.clear();
+        if (input) input.value = '';
+        updateHeroDestinationCard();
+    }
+}
+
+let converterListenersBound = false;
+
+/** Wire converter UI — idempotent, null-safe */
+function initConverterListeners() {
+    if (converterListenersBound) return;
+    converterListenersBound = true;
+
+    bind(currencySearch, 'input', () => {
+        populateSelects(currencySearch?.value || '');
+    });
+    bind(fromAmount, 'input', updateConversion);
+    bind(fromCurrency, 'change', onFromCurrencyChange);
+    bind(toCurrency, 'change', onToCurrencyChange);
+    bind(swapBtn, 'click', swapCurrencies);
+
+    document.querySelectorAll('.quick-btn').forEach((btn) => {
+        bind(btn, 'click', () => {
+            if (fromAmount) fromAmount.value = btn.dataset.amount || '';
+            updateConversion();
+        });
+    });
 }
 
 function onLanguageChange() {
     refreshCityContextForLanguage();
-    populateSelects(currencySearch.value);
+    populateSelects(currencySearch?.value || '');
     if (runwayBudgetCurrency) {
         const val = runwayBudgetCurrency.value;
         runwayBudgetCurrency.innerHTML = buildSelectOptions();
@@ -2168,24 +2219,7 @@ function initDashboardPage() {
             }
         });
 
-        bind(currencySearch, 'input', () => {
-            populateSelects(currencySearch?.value || '');
-        });
-        bind(fromAmount, 'input', updateConversion);
-        bind(fromCurrency, 'change', () => {
-            AppState.homeCurrency = fromCurrency.value;
-        });
-        bind(toCurrency, 'change', () => {
-            AppState.targetCurrency = toCurrency.value;
-        });
-        bind(swapBtn, 'click', swapCurrencies);
-
-        document.querySelectorAll('.quick-btn').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                if (fromAmount) fromAmount.value = btn.dataset.amount || '';
-                updateConversion();
-            });
-        });
+        initConverterListeners();
     } catch (err) {
         console.error('[Nomad OS] Dashboard init failed:', err);
         try {
@@ -2231,6 +2265,8 @@ window.NomadOSApp = {
     animateIntegerEl,
     animateRateEl,
     animateBarWidth,
+    initConverterListeners,
+    swapCurrencies,
     getLastAnimatedValue
 };
 
