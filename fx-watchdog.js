@@ -51,9 +51,13 @@ async function fetchPairRateTrend(from, to, days = 7) {
     const endStr = end.toISOString().slice(0, 10);
 
     try {
-        const rangeResult = typeof fetchFxRateRange === 'function'
+        let rangeResult = typeof fetchFxRateRange === 'function'
             ? await fetchFxRateRange(from, to, startStr, endStr, { silent: true })
             : null;
+
+        if ((!rangeResult?.ok || !rangeResult.rates) && typeof generateFallbackTrendData === 'function') {
+            rangeResult = generateFallbackTrendData(from, to, startStr, endStr);
+        }
 
         if (!rangeResult?.ok || !rangeResult.rates) throw new Error('History unavailable');
 
@@ -61,8 +65,9 @@ async function fetchPairRateTrend(from, to, days = 7) {
         const dates = Object.keys(rates).sort();
         if (dates.length < 2) throw new Error('Insufficient history');
 
-        const firstRate = rates[dates[0]]?.[to];
-        const lastRate = rates[dates[dates.length - 1]]?.[to];
+        const quote = String(to).toUpperCase();
+        const firstRate = rates[dates[0]]?.[quote] ?? rates[dates[0]]?.[to];
+        const lastRate = rates[dates[dates.length - 1]]?.[quote] ?? rates[dates[dates.length - 1]]?.[to];
         const currentRate = typeof converter !== 'undefined' ? converter.getRate(from, to) : lastRate;
 
         if (!firstRate || !lastRate) throw new Error('Missing rate data');
@@ -77,7 +82,8 @@ async function fetchPairRateTrend(from, to, days = 7) {
             currentRate,
             changePct,
             dates,
-            rates
+            rates,
+            simulated: Boolean(rangeResult.simulated)
         };
         fxTrendCache = { key: cacheKey, data: result, fetchedAt: now };
         return result;

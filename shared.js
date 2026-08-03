@@ -87,18 +87,79 @@ const FALLBACK_RATES = {
 const FX_PRIMARY_API = 'https://open.er-api.com/v6/latest';
 const FX_BACKUP_API = 'https://api.exchangerate-api.com/v4/latest';
 
+/** Currencies supported by Frankfurter / ECB historical endpoints */
+const SUPPORTED_ECB_CURRENCIES = new Set([
+    'USD', 'EUR', 'GBP', 'NOK', 'CHF', 'JPY', 'CNY', 'AUD', 'CAD', 'INR', 'BRL', 'ZAR', 'SGD',
+    'THB', 'IDR', 'MXN', 'HKD', 'NZD', 'SEK', 'DKK', 'PLN'
+]);
+
+function isEcbSupported(code) {
+    return SUPPORTED_ECB_CURRENCIES.has(String(code || '').toUpperCase());
+}
+
+function resolveFallbackPairRate(from, to) {
+    const base = String(from || '').toUpperCase();
+    const target = String(to || '').toUpperCase();
+    if (base === target) return 1;
+
+    try {
+        if (typeof converter !== 'undefined' && converter.rates[base] && converter.rates[target]) {
+            const live = converter.getRate(base, target);
+            if (Number.isFinite(live) && live > 0) return live;
+        }
+    } catch { /* use static fallback */ }
+
+    const merged = getMergedFallbackRates();
+    if (base === 'USD' && merged[target] != null) return merged[target];
+    if (target === 'USD' && merged[base] != null) return 1 / merged[base];
+    if (merged[base] != null && merged[target] != null) return merged[target] / merged[base];
+    return 1;
+}
+
+function generateFallbackTrendData(from, to, startDate, endDate) {
+    const base = String(from || '').toUpperCase();
+    const target = String(to || '').toUpperCase();
+    const rate = resolveFallbackPairRate(base, target);
+    const rates = {};
+    const cursor = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (Number.isNaN(cursor.getTime()) || Number.isNaN(end.getTime())) {
+        const today = new Date().toISOString().slice(0, 10);
+        rates[today] = { [target]: rate };
+        return { ok: true, rates, source: 'fallback-trend', simulated: true };
+    }
+
+    while (cursor <= end) {
+        rates[cursor.toISOString().slice(0, 10)] = { [target]: rate };
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    if (Object.keys(rates).length < 2) {
+        const extra = new Date(end);
+        extra.setDate(extra.getDate() + 1);
+        rates[extra.toISOString().slice(0, 10)] = { [target]: rate };
+    }
+
+    return { ok: true, rates, source: 'fallback-trend', simulated: true };
+}
+
 function getMergedFallbackRates() {
     return { USD: 1, ...DEFAULT_FX_RATES, ...FALLBACK_RATES };
 }
 
 async function fxApiFetch(url, meta = {}) {
-    const { silent = true, context = 'fx' } = meta;
+    const { silent = true } = meta;
     try {
-        const res = typeof safeFetch === 'function'
-            ? await safeFetch(url, {}, { silent, context })
-            : await fetch(url);
+        if (typeof navigator !== 'undefined' && !navigator.onLine) return null;
+        const res = await fetch(url);
+        if (res.status === 404 || res.status === 400 || res.status === 422) return null;
+        if (!res.ok) return null;
         return res;
-    } catch {
+    } catch (err) {
+        if (!silent) {
+            console.warn('[FX] History fetch failed:', err?.message || err);
+        }
         return null;
     }
 }
@@ -147,30 +208,41 @@ async function fetchHistoricalFxRates(dateStr, codes, options = {}) {
     const silent = options.silent ?? true;
     const meta = { silent, context: 'fx-history' };
     const list = Array.isArray(codes) ? codes : String(codes).split(',');
-    const symbols = list.map((c) => c.trim()).filter(Boolean).join(',');
+    const trimmed = list.map((c) => c.trim()).filter(Boolean);
+    const supported = trimmed.filter(isEcbSupported);
+    const merged = getMergedFallbackRates();
+    const fallback = {};
 
+    for (const code of trimmed) {
+        if (!isEcbSupported(code) && merged[code] != null) {
+            fallback[code] = merged[code];
+        }
+    }
+
+    if (!supported.length) {
+        return { ok: false, rates: fallback, source: 'fallback' };
+    }
+
+    const symbols = supported.join(',');
     const urls = [
         `https://api.frankfurter.dev/v1/${dateStr}?base=USD&symbols=${symbols}`,
         `https://api.frankfurter.app/${dateStr}?from=USD&to=${symbols}`
     ];
 
     for (const url of urls) {
+        const res = await fxApiFetch(url, meta);
+        if (!res) continue;
         try {
-            const res = await fxApiFetch(url, meta);
-            if (!res?.ok) continue;
             const data = await res.json();
             const rates = data.rates;
             if (rates && Object.keys(rates).length) {
-                return { ok: true, rates, source: url };
+                return { ok: true, rates: { ...rates, ...fallback }, source: url };
             }
         } catch { /* try next endpoint */ }
     }
 
-    const fallback = {};
-    const merged = getMergedFallbackRates();
-    for (const code of list) {
-        const key = code.trim();
-        if (merged[key] != null) fallback[key] = merged[key];
+    for (const code of supported) {
+        if (merged[code] != null) fallback[code] = merged[code];
     }
     return { ok: false, rates: fallback, source: 'fallback' };
 }
@@ -178,17 +250,26 @@ async function fetchHistoricalFxRates(dateStr, codes, options = {}) {
 async function fetchFxRateRange(from, to, startDate, endDate, options = {}) {
     const silent = options.silent ?? true;
     const meta = { silent, context: 'fx-history' };
+    const baseCurrency = String(from || '').toUpperCase();
+    const targetCurrency = String(to || '').toUpperCase();
     const range = `${startDate}..${endDate}`;
 
+    if (!isEcbSupported(baseCurrency) || !isEcbSupported(targetCurrency)) {
+        console.warn(
+            `[FX Watchdog] Currency pair ${baseCurrency}/${targetCurrency} not supported by Frankfurter API. Using fallback trend data.`
+        );
+        return generateFallbackTrendData(baseCurrency, targetCurrency, startDate, endDate);
+    }
+
     const urls = [
-        `https://api.frankfurter.dev/v1/${range}?base=${from}&symbols=${to}`,
-        `https://api.frankfurter.app/${range}?from=${from}&to=${to}`
+        `https://api.frankfurter.dev/v1/${range}?base=${baseCurrency}&symbols=${targetCurrency}`,
+        `https://api.frankfurter.app/${range}?from=${baseCurrency}&to=${targetCurrency}`
     ];
 
     for (const url of urls) {
+        const res = await fxApiFetch(url, meta);
+        if (!res) continue;
         try {
-            const res = await fxApiFetch(url, meta);
-            if (!res?.ok) continue;
             const data = await res.json();
             const rates = data.rates;
             if (rates && Object.keys(rates).length >= 2) {
@@ -197,7 +278,10 @@ async function fetchFxRateRange(from, to, startDate, endDate, options = {}) {
         } catch { /* try next endpoint */ }
     }
 
-    return { ok: false, rates: null, source: 'fallback' };
+    console.warn(
+        `[FX Watchdog] Historical range unavailable for ${baseCurrency}/${targetCurrency}. Using fallback trend data.`
+    );
+    return generateFallbackTrendData(baseCurrency, targetCurrency, startDate, endDate);
 }
 
 /** Nomad survival metadata per currency */
@@ -777,6 +861,9 @@ const NomadOSShared = {
     fetchLiveFxRatesWithFallback,
     fetchHistoricalFxRates,
     fetchFxRateRange,
+    SUPPORTED_ECB_CURRENCIES,
+    isEcbSupported,
+    generateFallbackTrendData,
     FALLBACK_RATES,
     getMergedFallbackRates,
     fetchWeather,
