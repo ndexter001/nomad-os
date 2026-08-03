@@ -1,5 +1,4 @@
 /** FX Volatility Watchdog — rate trends & localStorage alerts */
-const FX_HISTORY_API = 'https://api.frankfurter.app';
 const FX_ALERTS_KEY = 'nomad-os-rate-alerts';
 const FX_TREND_CACHE_MS = 30 * 60 * 1000;
 
@@ -48,15 +47,17 @@ async function fetchPairRateTrend(from, to, days = 7) {
     const end = new Date();
     const start = new Date();
     start.setDate(start.getDate() - days);
-    const range = `${start.toISOString().slice(0, 10)}..${end.toISOString().slice(0, 10)}`;
+    const startStr = start.toISOString().slice(0, 10);
+    const endStr = end.toISOString().slice(0, 10);
 
     try {
-        const res = typeof safeFetch === 'function'
-            ? await safeFetch(`${FX_HISTORY_API}/${range}?from=${from}&to=${to}`, {}, { silent: true, context: 'fx-history' })
-            : await fetch(`${FX_HISTORY_API}/${range}?from=${from}&to=${to}`);
-        if (!res.ok) throw new Error('History unavailable');
-        const data = await res.json();
-        const rates = data.rates || {};
+        const rangeResult = typeof fetchFxRateRange === 'function'
+            ? await fetchFxRateRange(from, to, startStr, endStr, { silent: true })
+            : null;
+
+        if (!rangeResult?.ok || !rangeResult.rates) throw new Error('History unavailable');
+
+        const rates = rangeResult.rates;
         const dates = Object.keys(rates).sort();
         if (dates.length < 2) throw new Error('Insufficient history');
 

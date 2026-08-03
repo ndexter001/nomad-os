@@ -1,5 +1,4 @@
 const REFRESH_INTERVAL_MS = 15_000;
-const HISTORY_API = 'https://api.frankfurter.app';
 const STATS_CURRENCIES = [
     'EUR', 'GBP', 'NOK', 'CHF', 'JPY', 'CNY', 'AUD', 'CAD', 'INR', 'BRL', 'ZAR', 'SGD'
 ];
@@ -1533,16 +1532,12 @@ async function fetchWeeklyRates() {
     const date = new Date();
     date.setDate(date.getDate() - 7);
     const dateStr = date.toISOString().slice(0, 10);
-    const codes = STATS_CURRENCIES.join(',');
 
-    try {
-        const response = await fetch(`${HISTORY_API}/${dateStr}?from=USD&to=${codes}`);
-        if (!response.ok) throw new Error('History unavailable');
-        const data = await response.json();
-        weeklyRates = data.rates ?? {};
-    } catch {
-        weeklyRates = {};
-    }
+    const result = typeof fetchHistoricalFxRates === 'function'
+        ? await fetchHistoricalFxRates(dateStr, STATS_CURRENCIES, { silent: true })
+        : { rates: getMergedFallbackRates?.() ?? FALLBACK_RATES ?? {} };
+
+    weeklyRates = result.rates ?? {};
 }
 
 function renderStats() {
@@ -1603,20 +1598,15 @@ async function fetchLiveRates() {
     if (statsList) statsList.classList.add('stats-list--loading');
 
     try {
-        const liveResponse = typeof safeFetch === 'function'
-            ? await safeFetch(RATES_API, {}, { context: 'fx' })
-            : await fetch(RATES_API);
-        await fetchWeeklyRates();
-
-        if (!liveResponse.ok) throw new Error('Network error');
-
-        const data = await liveResponse.json();
-        if (data.result !== 'success') throw new Error('API error');
+        const [fxResult] = await Promise.all([
+            fetchLiveFxRatesWithFallback('USD', { silent: true }),
+            fetchWeeklyRates()
+        ]);
 
         const liveRates = {};
         for (const code of CURRENCY_CODES) {
-            if (code !== 'USD' && data.rates[code] != null) {
-                liveRates[code] = data.rates[code];
+            if (code !== 'USD' && fxResult.rates[code] != null) {
+                liveRates[code] = fxResult.rates[code];
             }
         }
 
@@ -1625,17 +1615,31 @@ async function fetchLiveRates() {
         renderStats();
         flashLiveUpdate();
 
-        lastRateUpdate = new Date(data.time_last_update_utc);
-        updateTimestamps();
-        setBadgeState('live', t('badgeLive'));
-    } catch (err) {
-        if (err?.message !== 'offline' && !err?.message?.startsWith('HTTP')) {
-            /* safeFetch already toasted for HTTP/offline */
+        if (fxResult.source === 'fallback') {
+            setBadgeState('error', t('badgeOffline'));
+            if (lastUpdated) lastUpdated.textContent = t('fallbackRates');
+            if (statsUpdated) statsUpdated.textContent = t('badgeOffline');
+        } else {
+            if (fxResult.time) lastRateUpdate = new Date(fxResult.time);
+            else lastRateUpdate = new Date();
+            updateTimestamps();
+            setBadgeState('live', t('badgeLive'));
         }
+    } catch (err) {
+        console.warn('FX fetch failed; applying offline fallback rates:', err);
+        const merged = typeof getMergedFallbackRates === 'function'
+            ? getMergedFallbackRates()
+            : { USD: 1, ...FALLBACK_RATES };
+        const liveRates = {};
+        for (const code of CURRENCY_CODES) {
+            if (code !== 'USD' && merged[code] != null) liveRates[code] = merged[code];
+        }
+        converter.updateRates(liveRates);
+        updateConversion();
+        renderStats();
         setBadgeState('error', t('badgeOffline'));
         if (lastUpdated) lastUpdated.textContent = t('fallbackRates');
         if (statsUpdated) statsUpdated.textContent = t('badgeOffline');
-        renderStats();
     } finally {
         statsList?.classList.remove('stats-list--loading');
     }

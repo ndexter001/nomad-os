@@ -67,6 +67,139 @@ const DEFAULT_FX_RATES = {
     BDT: 110, NGN: 1550
 };
 
+/** Offline baseline market rates (USD base) — last-resort when all FX APIs fail */
+const FALLBACK_RATES = {
+    USD: 1.0,
+    EUR: 0.92,
+    GBP: 0.78,
+    NOK: 10.85,
+    CHF: 0.88,
+    JPY: 155.20,
+    CNY: 7.23,
+    AUD: 1.52,
+    CAD: 1.37,
+    INR: 83.50,
+    BRL: 5.45,
+    ZAR: 18.20,
+    SGD: 1.35
+};
+
+const FX_PRIMARY_API = 'https://open.er-api.com/v6/latest';
+const FX_BACKUP_API = 'https://api.exchangerate-api.com/v4/latest';
+
+function getMergedFallbackRates() {
+    return { USD: 1, ...DEFAULT_FX_RATES, ...FALLBACK_RATES };
+}
+
+async function fxApiFetch(url, meta = {}) {
+    const { silent = true, context = 'fx' } = meta;
+    try {
+        const res = typeof safeFetch === 'function'
+            ? await safeFetch(url, {}, { silent, context })
+            : await fetch(url);
+        return res;
+    } catch {
+        return null;
+    }
+}
+
+async function fetchLiveFxRatesWithFallback(baseCurrency = 'USD', options = {}) {
+    const silent = options.silent ?? true;
+    const meta = { silent, context: 'fx' };
+
+    try {
+        const res = await fxApiFetch(`${FX_PRIMARY_API}/${baseCurrency}`, meta);
+        if (!res?.ok) throw new Error('Primary API failed');
+        const data = await res.json();
+        if (data.result !== 'success' || !data.rates) throw new Error('Primary API invalid');
+        return {
+            ok: true,
+            rates: data.rates,
+            source: 'primary',
+            time: data.time_last_update_utc ?? null
+        };
+    } catch (err) {
+        console.warn('Primary FX API failed or CORS blocked. Switching to backup rates:', err);
+        try {
+            const res = await fxApiFetch(`${FX_BACKUP_API}/${baseCurrency}`, meta);
+            if (!res?.ok) throw new Error('Backup API failed');
+            const data = await res.json();
+            if (!data.rates) throw new Error('Backup API invalid');
+            return {
+                ok: true,
+                rates: data.rates,
+                source: 'backup',
+                time: data.date ?? null
+            };
+        } catch (fallbackErr) {
+            console.warn('Using offline fallback FX rates.');
+            return {
+                ok: true,
+                rates: getMergedFallbackRates(),
+                source: 'fallback',
+                time: null
+            };
+        }
+    }
+}
+
+async function fetchHistoricalFxRates(dateStr, codes, options = {}) {
+    const silent = options.silent ?? true;
+    const meta = { silent, context: 'fx-history' };
+    const list = Array.isArray(codes) ? codes : String(codes).split(',');
+    const symbols = list.map((c) => c.trim()).filter(Boolean).join(',');
+
+    const urls = [
+        `https://api.frankfurter.dev/v1/${dateStr}?base=USD&symbols=${symbols}`,
+        `https://api.frankfurter.app/${dateStr}?from=USD&to=${symbols}`
+    ];
+
+    for (const url of urls) {
+        try {
+            const res = await fxApiFetch(url, meta);
+            if (!res?.ok) continue;
+            const data = await res.json();
+            const rates = data.rates;
+            if (rates && Object.keys(rates).length) {
+                return { ok: true, rates, source: url };
+            }
+        } catch { /* try next endpoint */ }
+    }
+
+    const fallback = {};
+    const merged = getMergedFallbackRates();
+    for (const code of list) {
+        const key = code.trim();
+        if (merged[key] != null) fallback[key] = merged[key];
+    }
+    return { ok: false, rates: fallback, source: 'fallback' };
+}
+
+async function fetchFxRateRange(from, to, startDate, endDate, options = {}) {
+    const silent = options.silent ?? true;
+    const meta = { silent, context: 'fx-history' };
+    const range = `${startDate}..${endDate}`;
+
+    const urls = [
+        `https://api.frankfurter.dev/v1/${range}?base=${from}&symbols=${to}`,
+        `https://api.frankfurter.app/${range}?from=${from}&to=${to}`
+    ];
+
+    for (const url of urls) {
+        try {
+            const res = await fxApiFetch(url, meta);
+            if (!res?.ok) continue;
+            const data = await res.json();
+            const rates = data.rates;
+            if (rates && Object.keys(rates).length >= 2) {
+                return { ok: true, rates, source: url };
+            }
+        } catch { /* try next endpoint */ }
+    }
+
+    return { ok: false, rates: null, source: 'fallback' };
+}
+
 /** Nomad survival metadata per currency */
 const SURVIVAL_DATA = {
     USD: { sim10: 35, sim30: 55, tipping: 'customary', vat: 8.5, cashIntensity: 'low' },
@@ -446,23 +579,19 @@ function tempOverlayColor(celsius) {
 
 async function fetchLiveFxRates(options = {}) {
     const silent = options.silent ?? false;
-    try {
-        const res = typeof safeFetch === 'function'
-            ? await safeFetch(RATES_API, {}, { silent, context: 'fx' })
-            : await fetch(RATES_API);
-        if (!res.ok) throw new Error('FX unavailable');
-        const data = await res.json();
-        if (data.result !== 'success') throw new Error('FX error');
-        const live = {};
-        const codes = typeof CURRENCY_CODES !== 'undefined' ? CURRENCY_CODES : Object.keys(data.rates);
-        for (const code of codes) {
-            if (code !== 'USD' && data.rates[code] != null) live[code] = data.rates[code];
-        }
-        converter.updateRates(live);
-        return { ok: true, time: data.time_last_update_utc };
-    } catch {
-        return { ok: false };
+    const result = await fetchLiveFxRatesWithFallback('USD', { silent });
+    const live = {};
+    const codes = typeof CURRENCY_CODES !== 'undefined' ? CURRENCY_CODES : Object.keys(result.rates);
+    for (const code of codes) {
+        if (code !== 'USD' && result.rates[code] != null) live[code] = result.rates[code];
     }
+    converter.updateRates(live);
+    return {
+        ok: result.ok,
+        time: result.time,
+        source: result.source,
+        offline: result.source === 'fallback'
+    };
 }
 
 async function fetchWeather(lat, lon, options = {}) {
@@ -645,6 +774,11 @@ const NomadOSShared = {
     formatAmount,
     canMarketConvert,
     fetchLiveFxRates,
+    fetchLiveFxRatesWithFallback,
+    fetchHistoricalFxRates,
+    fetchFxRateRange,
+    FALLBACK_RATES,
+    getMergedFallbackRates,
     fetchWeather,
     Toast,
     safeFetch,
